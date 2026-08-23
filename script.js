@@ -8,7 +8,19 @@ const IG_HANDLE = "mitou_makeup";
    ============================================================ */
 const SUPABASE_URL = "https://VOTRE-PROJET.supabase.co"; // ⚠️ à remplacer
 const SUPABASE_ANON_KEY = "VOTRE_CLE_ANON_PUBLIC";        // ⚠️ à remplacer
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ⚠️ Sécurisé : si le script Supabase n'est pas chargé (ou mal configuré),
+// on ne plante plus jamais tout le reste du site (menu, sections, wizard...).
+let supabase = null;
+try{
+  if(window.supabase && typeof window.supabase.createClient === 'function'){
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } else {
+    console.warn('Supabase JS non chargé — vérifie le <script> CDN dans index.html.');
+  }
+}catch(e){
+  console.warn('Supabase : initialisation impossible, le site continue sans.', e);
+}
 
 /* N'oublie pas d'ajouter cette ligne dans index.html, AVANT <script src="script.js">
    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -25,6 +37,13 @@ const observer = new IntersectionObserver(entries=>{
   entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('show'); observer.unobserve(e.target); } });
 },{threshold:.12});
 document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+
+// Filet de sécurité : si une section n'est jamais révélée (bug JS ailleurs,
+// navigateur qui bloque l'observer, etc.), on force son affichage après 1.5s
+// pour ne jamais laisser une section invisible durablement.
+setTimeout(()=>{
+  document.querySelectorAll('.reveal:not(.show)').forEach(el=>el.classList.add('show'));
+}, 1500);
 
 /* ---------- catalogue ---------- */
 const TONES = {
