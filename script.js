@@ -1,7 +1,18 @@
 const PAYPAL_HANDLE = "mitoumakeup";
 const IG_HANDLE = "mitou_makeup";
-// Pour un vrai stockage, connecter un projet Supabase et remplacer
-// submitReservation() par un insert(), comme dans le projet swoohair.
+
+/* ============================================================
+   SUPABASE — à configurer avec les infos du NOUVEAU projet
+   (celui de makeupmitou@gmail.com, pas swoohair)
+   Dashboard > Project Settings > API > Project URL / anon public key
+   ============================================================ */
+const SUPABASE_URL = "https://VOTRE-PROJET.supabase.co"; // ⚠️ à remplacer
+const SUPABASE_ANON_KEY = "VOTRE_CLE_ANON_PUBLIC";        // ⚠️ à remplacer
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* N'oublie pas d'ajouter cette ligne dans index.html, AVANT <script src="script.js">
+   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+*/
 
 /* ---------- menu mobile ---------- */
 const menuBtn = document.querySelector('.menu-btn');
@@ -57,8 +68,6 @@ document.querySelectorAll('.swatch-block').forEach(block=>{
   block.addEventListener('click', ()=> applyTone(block.dataset.tone, true));
 });
 
-/* Sur mobile : la couleur réagit dès que le doigt effleure une teinte
-   (scrub tactile), sans attendre le relâchement du tap */
 const triptychEl = document.getElementById('triptych');
 if(triptychEl){
   let touchTone = null;
@@ -120,24 +129,38 @@ FORMATIONS.forEach((f, i)=>{
   accWrap.appendChild(item);
 });
 
-/* ---------- avis ---------- */
+/* ---------- avis (Supabase) ---------- */
+// Avis de secours affichés le temps que Supabase réponde / si erreur réseau
 let AVIS = [
-  {nom:"Aïcha",note:5,svc:"Makeup mariée",txt:"Un rendu naturel et tenu toute la journée, exactement le look que je voulais."},
-  {nom:"Lina",note:5,svc:"Makeup sophistiqué",txt:"Le cut crease était d'une précision incroyable."},
-  {nom:"Sarah",note:5,svc:"Formation 2 jours",txt:"Une formation complète et personnalisée, énormément progressé."}
+  {nom:"Aïcha",note:5,service:"Makeup mariée",commentaire:"Un rendu naturel et tenu toute la journée, exactement le look que je voulais."},
+  {nom:"Lina",note:5,service:"Makeup sophistiqué",commentaire:"Le cut crease était d'une précision incroyable."},
+  {nom:"Sarah",note:5,service:"Formation 2 jours",commentaire:"Une formation complète et personnalisée, énormément progressé."}
 ];
 function starStr(n){ return "★★★★★".slice(0,n)+"☆☆☆☆☆".slice(0,5-n); }
 function renderAvis(){
   document.getElementById('avis-carousel').innerHTML = AVIS.map(a=>`
     <div class="avis-card">
       <div class="top"><span>${a.nom}</span><span class="stars">${starStr(a.note)}</span></div>
-      <p>"${a.txt}"</p>
-      <div class="tag">${a.svc}</div>
+      <p>"${a.commentaire}"</p>
+      <div class="tag">${a.service||''}</div>
     </div>`).join('');
-  const moy = AVIS.reduce((s,a)=>s+a.note,0)/AVIS.length;
+  const moy = AVIS.length ? AVIS.reduce((s,a)=>s+a.note,0)/AVIS.length : 5;
   document.getElementById('avg-note').textContent = moy.toFixed(1);
 }
-renderAvis();
+async function chargerAvis(){
+  try{
+    const { data, error } = await supabase
+      .from('avis')
+      .select('nom, service, note, commentaire')
+      .order('created_at', { ascending:false });
+    if(error) throw error;
+    if(data && data.length) AVIS = data;
+  }catch(e){
+    console.warn('Avis : lecture Supabase indisponible, affichage des avis par défaut.', e);
+  }
+  renderAvis();
+}
+chargerAvis();
 
 const modal = document.getElementById('avis-modal');
 document.getElementById('open-modal').addEventListener('click', ()=>modal.classList.add('open'));
@@ -149,12 +172,20 @@ document.getElementById('modal-rate').querySelectorAll('span').forEach(st=>{
     document.getElementById('modal-rate').querySelectorAll('span').forEach(s=>s.classList.toggle('on', +s.dataset.v<=noteChoisie));
   });
 });
-function postAvis(){
+async function postAvis(){
   const nom = document.getElementById('avis-nom').value.trim();
-  const svc = document.getElementById('avis-svc').value.trim() || "Prestation";
-  const txt = document.getElementById('avis-txt').value.trim();
-  if(!nom || !noteChoisie || !txt){ alert("Merci d'indiquer un prénom, une note et un commentaire."); return; }
-  AVIS.unshift({nom, note:noteChoisie, svc, txt});
+  const service = document.getElementById('avis-svc').value.trim() || "Prestation";
+  const commentaire = document.getElementById('avis-txt').value.trim();
+  if(!nom || !noteChoisie || !commentaire){ alert("Merci d'indiquer un prénom, une note et un commentaire."); return; }
+
+  const nouvelAvis = { nom, service, note:noteChoisie, commentaire };
+  try{
+    const { error } = await supabase.from('avis').insert(nouvelAvis);
+    if(error) throw error;
+  }catch(e){
+    console.warn('Avis : insertion Supabase indisponible, ajout local seulement.', e);
+  }
+  AVIS.unshift(nouvelAvis);
   renderAvis();
   document.getElementById('avis-nom').value=''; document.getElementById('avis-svc').value=''; document.getElementById('avis-txt').value='';
   noteChoisie=0; document.getElementById('modal-rate').querySelectorAll('span').forEach(s=>s.classList.remove('on'));
@@ -309,7 +340,7 @@ async function calcDist(){
 }
 
 const heureSel = document.getElementById('heure_rdv');
-function refreshHeureAvailability(){
+async function refreshHeureAvailability(){
   heureSel.innerHTML = '<option value="">Choisir un créneau</option>';
   for(let m = OUVERTURE; m <= FERMETURE; m += 60){
     const h = Math.floor(m/60);
@@ -317,7 +348,29 @@ function refreshHeureAvailability(){
     opt.value = `${h}:00`; opt.textContent = `${h}:00`;
     heureSel.appendChild(opt);
   }
+  // Grise les heures bloquées par l'admin pour la date sélectionnée (si une date est déjà choisie)
+  const date = document.getElementById('date_rdv').value;
+  if(!date) return;
+  try{
+    const { data, error } = await supabase
+      .from('creneaux_bloques')
+      .select('heure_debut, heure_fin')
+      .eq('date', date);
+    if(error) throw error;
+    (data||[]).forEach(bloc=>{
+      Array.from(heureSel.options).forEach(opt=>{
+        if(!opt.value) return;
+        if(opt.value >= bloc.heure_debut && opt.value < bloc.heure_fin){
+          opt.disabled = true;
+          opt.textContent = opt.value + ' (indisponible)';
+        }
+      });
+    });
+  }catch(e){
+    console.warn('Créneaux bloqués : lecture Supabase indisponible.', e);
+  }
 }
+document.getElementById('date_rdv').addEventListener('change', refreshHeureAvailability);
 
 function renderSummary(){
   const d = document.getElementById('date_rdv').value ? new Date(document.getElementById('date_rdv').value).toLocaleDateString('fr-FR') : '—';
@@ -341,8 +394,8 @@ function renderSummary(){
   btn.textContent = `Payer l'acompte de ${current.dep}€ via PayPal`;
 }
 
-/* ---------- demande mariée (sans Instagram) ---------- */
-function submitMariee(){
+/* ---------- demande mariée (Supabase) ---------- */
+async function submitMariee(){
   const statusEl = document.getElementById('mariee-status');
   const nom = document.getElementById('mar-nom').value.trim();
   const email = document.getElementById('mar-email').value.trim();
@@ -356,27 +409,23 @@ function submitMariee(){
     statusEl.style.color = "#d98787";
     return;
   }
-  // Démo : la demande est stockée dans ce navigateur (localStorage) pour
-  // apparaître dans l'espace admin. Pour un vrai envoi multi-appareils,
-  // connecter ici Supabase ou EmailJS, comme dans les projets swoohair.
-  saveToAdmin('mitou_mariee', {
-    id: Date.now(), nom, email, tel, date, formule, message: msg,
-    status: 'en attente', createdAt: new Date().toISOString()
-  });
 
-  statusEl.textContent = "Demande envoyée ✓ — je vous recontacte par e-mail, généralement sous 48h.";
-  statusEl.style.color = "#9bcf9b";
-  document.querySelectorAll('.mariee-form input,.mariee-form select,.mariee-form textarea,.mariee-form button').forEach(el=>el.disabled=true);
-}
-
-function saveToAdmin(key, entry){
   try{
-    const arr = JSON.parse(localStorage.getItem(key) || '[]');
-    arr.unshift(entry);
-    localStorage.setItem(key, JSON.stringify(arr));
-  }catch(e){ console.warn('Stockage local indisponible', e); }
+    const { error } = await supabase.from('demandes_mariee').insert({
+      nom, email, telephone:tel, date_mariage:date, formule, message: msg
+    });
+    if(error) throw error;
+    statusEl.textContent = "Demande envoyée ✓ — je vous recontacte par e-mail, généralement sous 48h.";
+    statusEl.style.color = "#9bcf9b";
+    document.querySelectorAll('.mariee-form input,.mariee-form select,.mariee-form textarea,.mariee-form button').forEach(el=>el.disabled=true);
+  }catch(e){
+    console.error('Demande mariée : envoi Supabase impossible.', e);
+    statusEl.textContent = "Une erreur est survenue, merci de réessayer ou de me contacter directement.";
+    statusEl.style.color = "#d98787";
+  }
 }
 
+/* ---------- réservation (Supabase + Storage pour la capture PayPal) ---------- */
 async function submitReservation(){
   const statusEl = document.getElementById('submit-status');
   const nom = document.getElementById('nom').value.trim();
@@ -395,25 +444,41 @@ async function submitReservation(){
   const depl = deplacementMontant();
   const total = prixNumerique(current.price) + depl;
 
-  // Démo : la demande est stockée dans ce navigateur (localStorage) pour
-  // apparaître dans l'espace admin. Pour un vrai envoi multi-appareils,
-  // connecter ici Supabase, comme dans les projets swoohair.
-  saveToAdmin('mitou_reservations', {
-    id: Date.now(),
-    type: current.type,
-    prestation: current.name,
-    prix: current.price,
-    total: total + '€',
-    acompte: current.dep + '€',
-    date, heure,
-    deplacement: (current.type==='slot' && depState.actif) ? (depState.label || 'oui') : 'non',
-    adresse: (current.type==='slot' && depState.actif) ? document.getElementById('dep-address').value.trim() : '',
-    nom, email, tel, insta,
-    capture: captureFile.name,
-    status: 'en attente',
-    createdAt: new Date().toISOString()
-  });
+  statusEl.textContent = "Envoi en cours…";
+  statusEl.style.color = "";
 
-  statusEl.textContent = "Demande envoyée ✓ — vous recevrez une réponse dès qu'elle sera traitée.";
-  statusEl.style.color = "#9bcf9b";
+  try{
+    // 1) Upload de la capture dans le bucket Storage "captures" (à créer dans Supabase, en public)
+    const cheminFichier = `${Date.now()}_${captureFile.name}`;
+    const { error: uploadError } = await supabase.storage
+      .from('captures')
+      .upload(cheminFichier, captureFile);
+    if(uploadError) throw uploadError;
+    const { data: urlData } = supabase.storage.from('captures').getPublicUrl(cheminFichier);
+    const captureUrl = urlData.publicUrl;
+
+    // 2) Insertion de la réservation
+    const { error: insertError } = await supabase.from('reservations').insert({
+      type: current.type,
+      prestation: current.name,
+      prix: current.price,
+      total: total + '€',
+      acompte: current.dep + '€',
+      date_rdv: date,
+      heure_rdv: heure,
+      deplacement: (current.type==='slot' && depState.actif) ? (depState.label || 'oui') : 'non',
+      adresse: (current.type==='slot' && depState.actif) ? document.getElementById('dep-address').value.trim() : '',
+      nom, email, telephone: tel, instagram: insta,
+      capture_paiement: captureUrl,
+      status: 'en attente'
+    });
+    if(insertError) throw insertError;
+
+    statusEl.textContent = "Demande envoyée ✓ — vous recevrez une réponse dès qu'elle sera traitée.";
+    statusEl.style.color = "#9bcf9b";
+  }catch(e){
+    console.error('Réservation : envoi Supabase impossible.', e);
+    statusEl.textContent = "Une erreur est survenue lors de l'envoi, merci de réessayer.";
+    statusEl.style.color = "#d98787";
+  }
 }
