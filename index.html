@@ -52,15 +52,19 @@
     <h2 class="sect-title">Sublimer chaque <b>occasion</b></h2>
 
     <!-- Cadre photo : remplacer ce bloc par une vraie photo (portrait de Mitou)
-         quand elle sera disponible. Il suffit de mettre une balise <img> à la
-         place du contenu de .portfolio-frame-inner, ou en background du
-         .portfolio-frame. -->
+         quand elle sera disponible. Il suffit de mettre une balise <img>
+         (avec style="width:100%;height:100%;object-fit:cover") à la place
+         du contenu de .portfolio-frame-inner : le monogramme M et les coins
+         disparaîtront automatiquement derrière la photo. -->
     <div class="about-photo">
       <div class="portfolio-frame">
+        <div class="frame-corner tl"></div><div class="frame-corner tr"></div>
+        <div class="frame-corner bl"></div><div class="frame-corner br"></div>
         <div class="portfolio-frame-inner">
-          <span class="portfolio-frame-plus">+</span>
-          <span class="portfolio-frame-label">Votre photo ici</span>
-          <span class="portfolio-frame-tag">Portrait Mitou</span>
+          <div class="frame-caption">
+            <span class="frame-caption-label">Votre photo ici</span>
+            <span class="frame-caption-sub">Portrait — Mitou</span>
+          </div>
         </div>
       </div>
     </div>
@@ -78,54 +82,75 @@
 
   <section class="section reveal" id="portfolio">
     <p class="sect-kicker">Portfolio</p>
-    <h2 class="sect-title">Les <b>réalisations</b></h2>
-    <p style="color:var(--muted);font-size:13.5px;max-width:460px;margin-bottom:30px">Chaque cadre ci-dessous est prêt à recevoir une photo — il suffit de la glisser à la place du contenu quand elle sera disponible.</p>
+    <h2 class="sect-title">Une galerie <b>signée M</b></h2>
+    <p style="color:var(--muted);font-size:13.5px;max-width:460px;margin-bottom:30px">Chaque cadre porte déjà sa signature — il n'attend plus que vos plus belles réalisations pour prendre vie.</p>
 
-    <!-- Grille portfolio : chaque .portfolio-frame est un emplacement.
-         Pour ajouter une vraie photo, remplacer le contenu de
-         .portfolio-frame-inner par : <img src="chemin/vers/photo.jpg" alt="..."> 
-         et ajuster le CSS (object-fit:cover; width:100%; height:100%) si besoin. -->
+    <!-- Grille portfolio : chaque .portfolio-frame est un emplacement prêt à
+         recevoir une photo. Pour l'ajouter, remplacer le contenu de
+         .portfolio-frame-inner par :
+         <img src="chemin/vers/photo.jpg" alt="..." style="width:100%;height:100%;object-fit:cover">
+         Le monogramme M disparaît automatiquement derrière l'image ; les coins
+         dorés et la légende restent visibles par-dessus. La classe "tall" sur
+         un cadre le fait s'étendre sur 2 lignes pour un effet mosaïque. -->
     <div class="portfolio-grid">
-      <div class="portfolio-frame">
+      <div class="portfolio-frame tall">
+        <div class="frame-corner tl"></div><div class="frame-corner tr"></div>
+        <div class="frame-corner bl"></div><div class="frame-corner br"></div>
         <div class="portfolio-frame-inner">
-          <span class="portfolio-frame-plus">+</span>
-          <span class="portfolio-frame-label">Nude</span>
-          <span class="portfolio-frame-tag">Photo à venir</span>
+          <div class="frame-caption">
+            <span class="frame-caption-label">Nude</span>
+            <span class="frame-caption-sub">Photo à venir</span>
+          </div>
         </div>
       </div>
       <div class="portfolio-frame">
+        <div class="frame-corner tl"></div><div class="frame-corner tr"></div>
+        <div class="frame-corner bl"></div><div class="frame-corner br"></div>
         <div class="portfolio-frame-inner">
-          <span class="portfolio-frame-plus">+</span>
-          <span class="portfolio-frame-label">Cut Crease</span>
-          <span class="portfolio-frame-tag">Photo à venir</span>
+          <div class="frame-caption">
+            <span class="frame-caption-label">Cut Crease</span>
+            <span class="frame-caption-sub">Photo à venir</span>
+          </div>
         </div>
       </div>
       <div class="portfolio-frame">
+        <div class="frame-corner tl"></div><div class="frame-corner tr"></div>
+        <div class="frame-corner bl"></div><div class="frame-corner br"></div>
         <div class="portfolio-frame-inner">
-          <span class="portfolio-frame-plus">+</span>
-          <span class="portfolio-frame-label">Sophistiqué</span>
-          <span class="portfolio-frame-tag">Photo à venir</span>
+          <div class="frame-caption">
+            <span class="frame-caption-label">Sophistiqué</span>
+            <span class="frame-caption-sub">Photo à venir</span>
+          </div>
+        </div>
+      </div>
+      <div class="portfolio-frame tall">
+        <div class="frame-corner tl"></div><div class="frame-corner tr"></div>
+        <div class="frame-corner bl"></div><div class="frame-corner br"></div>
+        <div class="portfolio-frame-inner">
+          <div class="frame-caption">
+            <span class="frame-caption-label">Mariée</span>
+            <span class="frame-caption-sub">Photo à venir</span>
+          </div>
         </div>
       </div>
       <div class="portfolio-frame">
+        <div class="frame-corner tl"></div><div class="frame-corner tr"></div>
+        <div class="frame-corner bl"></div><div class="frame-corner br"></div>
         <div class="portfolio-frame-inner">
-          <span class="portfolio-frame-plus">+</span>
-          <span class="portfolio-frame-label">Mariée</span>
-          <span class="portfolio-frame-tag">Photo à venir</span>
+          <div class="frame-caption">
+            <span class="frame-caption-label">Avant / Après</span>
+            <span class="frame-caption-sub">Photo à venir</span>
+          </div>
         </div>
       </div>
       <div class="portfolio-frame">
+        <div class="frame-corner tl"></div><div class="frame-corner tr"></div>
+        <div class="frame-corner bl"></div><div class="frame-corner br"></div>
         <div class="portfolio-frame-inner">
-          <span class="portfolio-frame-plus">+</span>
-          <span class="portfolio-frame-label">Avant / Après</span>
-          <span class="portfolio-frame-tag">Photo à venir</span>
-        </div>
-      </div>
-      <div class="portfolio-frame">
-        <div class="portfolio-frame-inner">
-          <span class="portfolio-frame-plus">+</span>
-          <span class="portfolio-frame-label">Formation</span>
-          <span class="portfolio-frame-tag">Photo à venir</span>
+          <div class="frame-caption">
+            <span class="frame-caption-label">Formation</span>
+            <span class="frame-caption-sub">Photo à venir</span>
+          </div>
         </div>
       </div>
     </div>
