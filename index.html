@@ -16,11 +16,11 @@
   <span class="logo">Mitou Makeup</span>
   <nav>
     <a href="#apropos">À propos</a>
+    <a href="#portfolio">Portfolio</a>
     <a href="#invitee">Invitée</a>
     <a href="#mariee">Mariée</a>
     <a href="#formations">Formations</a>
     <a href="#wizard">Réserver</a>
-    <a href="#portfolio">Portfolio</a>
     <a href="#avis">Avis</a>
   </nav>
   <button class="menu-btn" aria-label="Menu"><i></i><i></i><i></i></button>
@@ -28,11 +28,11 @@
 
 <div class="mobile-menu">
   <a href="#apropos">À propos</a>
+  <a href="#portfolio">Portfolio</a>
   <a href="#invitee">Invitée</a>
   <a href="#mariee">Mariée</a>
   <a href="#formations">Formations</a>
   <a href="#wizard">Réserver</a>
-  <a href="#portfolio">Portfolio</a>
   <a href="#avis">Avis</a>
 </div>
 
@@ -70,6 +70,82 @@
     </div>
 
     <p style="color:var(--muted);max-width:460px;line-height:1.8;font-size:14px">Artiste maquilleuse et formatrice, je façonne des looks nude, cut crease ou sophistiqués selon l'événement — mariage, soirée, shooting. Fondatrice de Mitou Makeup Institut, je forme aussi celles qui veulent apprendre le métier dans les meilleures conditions.</p>
+  </section>
+
+  <section class="section reveal" id="portfolio">
+    <p class="sect-kicker">Portfolio</p>
+    <h2 class="sect-title">Une galerie <b>signée M</b></h2>
+    <p style="color:var(--muted);font-size:13.5px;max-width:460px;margin-bottom:30px">Un aperçu du travail avant de choisir votre formule. Chaque cadre porte déjà sa signature — il n'attend plus que vos plus belles réalisations pour prendre vie.</p>
+
+    <!-- Grille portfolio : chaque .portfolio-frame est un emplacement prêt à
+         recevoir une photo. Pour l'ajouter, remplacer le contenu de
+         .portfolio-frame-inner par :
+         <img src="chemin/vers/photo.jpg" alt="..." style="width:100%;height:100%;object-fit:cover">
+         Le monogramme M disparaît automatiquement derrière l'image ; les coins
+         dorés et la légende restent visibles par-dessus. La classe "tall" sur
+         un cadre le fait s'étendre sur 2 lignes pour un effet mosaïque (desktop uniquement). -->
+    <div class="portfolio-grid">
+      <div class="portfolio-frame tall">
+        <div class="frame-corner tl"></div><div class="frame-corner tr"></div>
+        <div class="frame-corner bl"></div><div class="frame-corner br"></div>
+        <div class="portfolio-frame-inner">
+          <div class="frame-caption">
+            <span class="frame-caption-label">Nude</span>
+            <span class="frame-caption-sub">Photo à venir</span>
+          </div>
+        </div>
+      </div>
+      <div class="portfolio-frame">
+        <div class="frame-corner tl"></div><div class="frame-corner tr"></div>
+        <div class="frame-corner bl"></div><div class="frame-corner br"></div>
+        <div class="portfolio-frame-inner">
+          <div class="frame-caption">
+            <span class="frame-caption-label">Cut Crease</span>
+            <span class="frame-caption-sub">Photo à venir</span>
+          </div>
+        </div>
+      </div>
+      <div class="portfolio-frame">
+        <div class="frame-corner tl"></div><div class="frame-corner tr"></div>
+        <div class="frame-corner bl"></div><div class="frame-corner br"></div>
+        <div class="portfolio-frame-inner">
+          <div class="frame-caption">
+            <span class="frame-caption-label">Sophistiqué</span>
+            <span class="frame-caption-sub">Photo à venir</span>
+          </div>
+        </div>
+      </div>
+      <div class="portfolio-frame tall">
+        <div class="frame-corner tl"></div><div class="frame-corner tr"></div>
+        <div class="frame-corner bl"></div><div class="frame-corner br"></div>
+        <div class="portfolio-frame-inner">
+          <div class="frame-caption">
+            <span class="frame-caption-label">Mariée</span>
+            <span class="frame-caption-sub">Photo à venir</span>
+          </div>
+        </div>
+      </div>
+      <div class="portfolio-frame">
+        <div class="frame-corner tl"></div><div class="frame-corner tr"></div>
+        <div class="frame-corner bl"></div><div class="frame-corner br"></div>
+        <div class="portfolio-frame-inner">
+          <div class="frame-caption">
+            <span class="frame-caption-label">Avant / Après</span>
+            <span class="frame-caption-sub">Photo à venir</span>
+          </div>
+        </div>
+      </div>
+      <div class="portfolio-frame">
+        <div class="frame-corner tl"></div><div class="frame-corner tr"></div>
+        <div class="frame-corner bl"></div><div class="frame-corner br"></div>
+        <div class="portfolio-frame-inner">
+          <div class="frame-caption">
+            <span class="frame-caption-label">Formation</span>
+            <span class="frame-caption-sub">Photo à venir</span>
+          </div>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section class="section reveal" id="infos" style="padding-top:0;border-top:0">
@@ -250,82 +326,6 @@
     <p class="slot-note" id="submit-status">Votre demande est transmise directement — réponse par e-mail ou Instagram dès traitement.</p>
   </div>
 </section>
-
-  <section class="section reveal" id="portfolio">
-    <p class="sect-kicker">Portfolio</p>
-    <h2 class="sect-title">Un aperçu <b>avant de partir ?</b></h2>
-    <p style="color:var(--muted);font-size:13.5px;max-width:460px;margin-bottom:30px">Votre rendez-vous est presque pris — en attendant le jour J, jetez un œil à la galerie. Chaque cadre porte déjà sa signature et n'attend plus que vos plus belles réalisations pour prendre vie.</p>
-
-    <!-- Grille portfolio : chaque .portfolio-frame est un emplacement prêt à
-         recevoir une photo. Pour l'ajouter, remplacer le contenu de
-         .portfolio-frame-inner par :
-         <img src="chemin/vers/photo.jpg" alt="..." style="width:100%;height:100%;object-fit:cover">
-         Le monogramme M disparaît automatiquement derrière l'image ; les coins
-         dorés et la légende restent visibles par-dessus. La classe "tall" sur
-         un cadre le fait s'étendre sur 2 lignes pour un effet mosaïque (desktop uniquement). -->
-    <div class="portfolio-grid">
-      <div class="portfolio-frame tall">
-        <div class="frame-corner tl"></div><div class="frame-corner tr"></div>
-        <div class="frame-corner bl"></div><div class="frame-corner br"></div>
-        <div class="portfolio-frame-inner">
-          <div class="frame-caption">
-            <span class="frame-caption-label">Nude</span>
-            <span class="frame-caption-sub">Bientôt disponible</span>
-          </div>
-        </div>
-      </div>
-      <div class="portfolio-frame">
-        <div class="frame-corner tl"></div><div class="frame-corner tr"></div>
-        <div class="frame-corner bl"></div><div class="frame-corner br"></div>
-        <div class="portfolio-frame-inner">
-          <div class="frame-caption">
-            <span class="frame-caption-label">Cut Crease</span>
-            <span class="frame-caption-sub">Bientôt disponible</span>
-          </div>
-        </div>
-      </div>
-      <div class="portfolio-frame">
-        <div class="frame-corner tl"></div><div class="frame-corner tr"></div>
-        <div class="frame-corner bl"></div><div class="frame-corner br"></div>
-        <div class="portfolio-frame-inner">
-          <div class="frame-caption">
-            <span class="frame-caption-label">Sophistiqué</span>
-            <span class="frame-caption-sub">Bientôt disponible</span>
-          </div>
-        </div>
-      </div>
-      <div class="portfolio-frame tall">
-        <div class="frame-corner tl"></div><div class="frame-corner tr"></div>
-        <div class="frame-corner bl"></div><div class="frame-corner br"></div>
-        <div class="portfolio-frame-inner">
-          <div class="frame-caption">
-            <span class="frame-caption-label">Mariée</span>
-            <span class="frame-caption-sub">Bientôt disponible</span>
-          </div>
-        </div>
-      </div>
-      <div class="portfolio-frame">
-        <div class="frame-corner tl"></div><div class="frame-corner tr"></div>
-        <div class="frame-corner bl"></div><div class="frame-corner br"></div>
-        <div class="portfolio-frame-inner">
-          <div class="frame-caption">
-            <span class="frame-caption-label">Avant / Après</span>
-            <span class="frame-caption-sub">Bientôt disponible</span>
-          </div>
-        </div>
-      </div>
-      <div class="portfolio-frame">
-        <div class="frame-corner tl"></div><div class="frame-corner tr"></div>
-        <div class="frame-corner bl"></div><div class="frame-corner br"></div>
-        <div class="portfolio-frame-inner">
-          <div class="frame-caption">
-            <span class="frame-caption-label">Formation</span>
-            <span class="frame-caption-sub">Bientôt disponible</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
 
   <section class="section reveal" id="avis">
     <p class="sect-kicker">Avis clientes</p>
