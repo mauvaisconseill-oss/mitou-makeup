@@ -40,7 +40,7 @@
   <section class="hero reveal" id="home">
     <p class="hero-kicker">Maquilleuse professionnelle · Île-de-France</p>
     <h1 class="hero-title">L'art du regard,<br>à votre image.</h1>
-    <p class="hero-text">Maquillage nude, cut crease ou sophistiqué pour vos événements, formules mariée complètes, et formations 1:1 pour transmettre le geste juste.</p>
+    <p class="hero-text">Maquillage nude, cut crease ou sophistiqué pour vos événements, formules mariée complètes, et formations individuelles pour transmettre le geste juste.</p>
     <div class="hero-cta">
       <a class="btn-primary" href="#invitee">Voir les prestations</a>
       <a class="btn-outline" href="#wizard">Réserver un créneau</a>
@@ -69,15 +69,7 @@
       </div>
     </div>
 
-    <div class="about-grid">
-      <p>Artiste maquilleuse et formatrice, je façonne des looks nude, cut crease ou sophistiqués selon l'événement — mariage, soirée, shooting. Fondatrice de Mitou Makeup Institut, je forme aussi celles qui veulent apprendre le métier dans les meilleures conditions.</p>
-      <div class="facts">
-        <div class="fact"><b>Zone</b><span>Île-de-France</span></div>
-        <div class="fact"><b>Déplacement</b><span>Dès 3 personnes, 60€/80€</span></div>
-        <div class="fact"><b>Réservation</b><span>100% en ligne pour l'invitée</span></div>
-        <div class="fact"><b>Instagram</b><span>@mitou_makeup</span></div>
-      </div>
-    </div>
+    <p style="color:var(--muted);max-width:460px;line-height:1.8;font-size:14px">Artiste maquilleuse et formatrice, je façonne des looks nude, cut crease ou sophistiqués selon l'événement — mariage, soirée, shooting. Fondatrice de Mitou Makeup Institut, je forme aussi celles qui veulent apprendre le métier dans les meilleures conditions.</p>
   </section>
 
   <section class="section reveal" id="portfolio">
@@ -156,6 +148,18 @@
     </div>
   </section>
 
+  <section class="section reveal" id="infos" style="padding-top:0;border-top:0">
+    <div class="info-line">
+      <span class="info-chip"><b>Zone</b>Île-de-France</span>
+      <span class="info-sep">·</span>
+      <span class="info-chip"><b>Déplacement</b>Dès 3 personnes, 60€/80€</span>
+      <span class="info-sep">·</span>
+      <span class="info-chip"><b>Réservation</b>100% en ligne pour l'invitée</span>
+      <span class="info-sep">·</span>
+      <span class="info-chip"><b>Instagram</b>@mitou_makeup</span>
+    </div>
+  </section>
+
   <section class="section reveal" id="invitee">
     <p class="sect-kicker">Formule invitée</p>
     <h2 class="sect-title">Quel regard <b>pour aujourd'hui ?</b></h2>
@@ -200,7 +204,10 @@
     <p class="sect-kicker">Formule mariée</p>
     <h2 class="sect-title">Le plus beau <b>des jours</b></h2>
     <p style="color:var(--muted);font-size:13.5px;max-width:460px;margin-bottom:6px">Cliquez une étape pour voir le détail.</p>
-    <div class="timeline" id="timeline"></div>
+    <div class="timeline-wrap">
+      <div class="timeline" id="timeline"></div>
+      <div class="timeline-hint"><span class="timeline-hint-arrow">→</span> Faites glisser pour voir les autres formules</div>
+    </div>
     <div class="tl-detail" id="tl-detail"></div>
 
     <div class="mariee-form">
@@ -252,7 +259,7 @@
 
   <div class="wz-panel active" id="wz-1">
     <div class="pick-list" id="pick-list"></div>
-    <div class="wz-nav"><button class="wz-btn primary" onclick="goStep(2)">Continuer →</button></div>
+    <div class="wz-nav"><button class="wz-btn primary" onclick="nextStep(2)">Continuer →</button></div>
   </div>
 
   <div class="wz-panel" id="wz-2">
@@ -284,7 +291,7 @@
         </div>
       </div>
     </div>
-    <div class="wz-nav"><button class="wz-btn" onclick="goStep(1)">← Retour</button><button class="wz-btn primary" onclick="goStep(3)">Continuer →</button></div>
+    <div class="wz-nav"><button class="wz-btn" onclick="goStep(1)">← Retour</button><button class="wz-btn primary" onclick="nextStep(3)">Continuer →</button></div>
   </div>
 
   <div class="wz-panel" id="wz-3">
@@ -296,7 +303,7 @@
     <input type="tel" id="telephone" placeholder="06 00 00 00 00">
     <label>Instagram</label>
     <input type="text" id="insta" placeholder="@votrecompte">
-    <div class="wz-nav"><button class="wz-btn" onclick="goStep(2)">← Retour</button><button class="wz-btn primary" onclick="goStep(4)">Continuer →</button></div>
+    <div class="wz-nav"><button class="wz-btn" onclick="goStep(2)">← Retour</button><button class="wz-btn primary" onclick="nextStep(4)">Continuer →</button></div>
   </div>
 
   <div class="wz-panel" id="wz-4">
