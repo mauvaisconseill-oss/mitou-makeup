@@ -96,16 +96,6 @@ nav{display:none}
 .sect-title{font-family:var(--font-display);font-optical-sizing:auto;font-weight:540;font-style:normal;font-size:clamp(28px,5vw,44px);line-height:1.05;letter-spacing:-.02em;margin-bottom:20px;color:var(--text)}
 .sect-title b{font-weight:540;font-style:italic;color:var(--text)}
 
-/* ---------- about ---------- */
-.about-grid{display:grid;grid-template-columns:1fr;gap:30px}
-.about-grid p{color:var(--muted);max-width:460px;line-height:1.8;font-size:14px}
-.facts{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--line);margin-top:26px;max-width:480px}
-.fact{padding:14px 0;border-bottom:1px solid var(--line)}
-.fact:nth-child(odd){padding-right:14px;border-right:1px solid var(--line)}
-.fact:nth-child(even){padding-left:14px}
-.fact b{display:block;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-weight:700}
-.fact span{font-size:14px;font-weight:500}
-
 /* ---------- cadres chic (à propos + portfolio) ---------- */
 .portfolio-frame{
   position:relative;
@@ -174,18 +164,38 @@ nav{display:none}
 
 .about-photo{max-width:240px;margin-bottom:34px}
 .about-photo .portfolio-frame-inner{min-height:300px}
-.about-photo .portfolio-frame-inner:before{font-size:min(40vw,170px)}
+.about-photo .portfolio-frame-inner:before{font-size:min(38vw,170px)}
 
-/* grille mosaïque — pas de grille uniforme, deux cadres plus grands pour un effet éditorial */
-.portfolio-grid{display:grid;grid-template-columns:repeat(2,1fr);grid-auto-rows:190px;gap:14px;margin-top:6px}
-.portfolio-grid .portfolio-frame.tall{grid-row:span 2}
+/* grille portfolio — cadres uniformes et lisibles sur mobile (aspect-ratio fixe),
+   mosaïque éditoriale (cadres inégaux) réservée au desktop où il y a la place */
+.portfolio-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:6px}
+.portfolio-grid .portfolio-frame{aspect-ratio:3/4}
+.portfolio-frame-inner{min-height:0}
+.portfolio-frame-inner:before{font-size:min(24vw,120px)}
 @media(min-width:700px){
-  .portfolio-grid{grid-template-columns:repeat(3,1fr);grid-auto-rows:220px}
+  .portfolio-grid{grid-template-columns:repeat(3,1fr);grid-auto-rows:220px;gap:14px}
+  .portfolio-grid .portfolio-frame{aspect-ratio:auto}
+  .portfolio-grid .portfolio-frame.tall{grid-row:span 2}
+  .portfolio-frame-inner:before{font-size:min(34vw,150px)}
 }
 
+/* ligne d'infos pratiques — plate, signée, sans cadres ni tableau */
+.info-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 14px;padding-top:26px;border-top:1px solid var(--line)}
+.info-chip{font-size:12.5px;color:var(--muted);white-space:nowrap}
+.info-chip b{display:inline-block;color:var(--text);font-weight:600;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;margin-right:8px}
+.info-sep{color:var(--gold-soft);font-size:12px}
+@media(min-width:900px){.info-line{padding-top:30px}}
+
 /* ---------- mariee timeline ---------- */
-.timeline{display:flex;overflow-x:auto;gap:0;padding-bottom:6px;margin-top:10px}
+.timeline-wrap{position:relative;margin-top:10px}
+.timeline{display:flex;overflow-x:auto;gap:0;padding-bottom:6px}
 .timeline::-webkit-scrollbar{height:4px}
+.timeline-wrap:after{content:"";position:absolute;top:0;right:0;bottom:6px;width:44px;background:linear-gradient(to right, rgba(10,10,9,0), var(--bg));pointer-events:none}
+.timeline-hint{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);font-weight:600}
+.timeline-hint-arrow{display:inline-block;animation:hint-slide 1.6s ease-in-out infinite}
+@keyframes hint-slide{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}
+@media(prefers-reduced-motion:reduce){.timeline-hint-arrow{animation:none}}
+@media(min-width:900px){.timeline-hint{display:none}}
 .tl-stop{flex:none;width:210px;padding:20px 22px 22px 0;border-left:1px solid var(--line);position:relative;cursor:pointer}
 .tl-stop:before{content:"";position:absolute;left:-4.5px;top:20px;width:8px;height:8px;border-radius:50%;background:var(--muted);transition:background .2s ease}
 .tl-stop.active{border-left-color:var(--text)}
@@ -316,5 +326,4 @@ footer{border-top:1px solid var(--line);padding:40px 5%;display:flex;flex-wrap:w
   .swatch-block{min-height:200px}
   .section{padding:100px 5%}
   .wizard{padding:100px 5%}
-  .about-grid{grid-template-columns:1fr 1fr;gap:60px}
 }
