@@ -1,4 +1,4 @@
-const PAYPAL_HANDLE = "mitoumakeup";
+const PAYPAL_HANDLE = "Mitoumakeup";
 const IG_HANDLE = "mitou_makeup";
 
 /* ============================================================
