@@ -285,6 +285,9 @@ nav{display:none}
 .dep-detail{display:none;margin-top:18px;border-top:1px solid var(--line);padding-top:18px}
 .dep-detail.show{display:block}
 .dep-note{font-size:.75rem;color:var(--muted);margin-bottom:14px;font-style:italic;font-family:var(--font-display)}
+.dep-people-label{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.dep-people-select{width:100%;background:transparent;border:1px solid #2c2a26;color:var(--text);padding:13px 14px;font-size:13.5px;outline:none;font-family:var(--font-sans);margin-bottom:4px}
+.dep-people-select option{color:#111}
 .dep-search{display:flex;gap:8px;margin-bottom:12px}
 .dep-city-input{flex:1;padding:13px 14px;background:transparent;border:1px solid #2c2a26;color:var(--text);font-family:var(--font-sans);font-size:.9rem;outline:none;transition:border-color .2s;min-width:0}
 .dep-city-input:focus{border-color:rgba(255,255,255,.35)}
