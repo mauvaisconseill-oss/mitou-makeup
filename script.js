@@ -58,8 +58,8 @@ const MARIEE = [
   {name:"Suivie journée", price:"750€", dep:150, detail:"Maquillage du matin puis présence à vos côtés toute la journée pour les retouches, avec un nouveau look possible en soirée. Fin de service à 23h."}
 ];
 const FORMATIONS = [
-  {name:"Formation 1 journée", price:"300€", dep:100, desc:"Réalisation de 2 looks (nude, cut crease, sophistiqué au choix), de 10h à 17h, en formation 1:1.", bullets:["Techniques de création des meilleurs looks","Gestion du matériel","Adaptation selon la morphologie"], note:"Acompte 100€ non remboursable · Modèle 15€ à votre charge"},
-  {name:"Formation 2 jours", price:"650€", dep:100, desc:"4 looks répartis sur 2 jours, 2 créations par jour, format 1:1, 10h-17h chaque jour.", bullets:["Approfondissement des techniques","Modèles variés chaque jour","Gestion du matériel"], note:"Acompte 100€ non remboursable · Modèle 15€/séance"},
+  {name:"Formation 1 journée", price:"300€", dep:100, desc:"Réalisation de 2 looks (nude, cut crease, sophistiqué au choix), de 10h à 17h, en formation individuelle.", bullets:["Techniques de création des meilleurs looks","Gestion du matériel","Adaptation selon la morphologie"], note:"Acompte 100€ non remboursable · Modèle 15€ à votre charge"},
+  {name:"Formation 2 jours", price:"650€", dep:100, desc:"4 looks répartis sur 2 jours, 2 créations par jour, format individuel, 10h-17h chaque jour.", bullets:["Approfondissement des techniques","Modèles variés chaque jour","Gestion du matériel"], note:"Acompte 100€ non remboursable · Modèle 15€/séance"},
   {name:"Formation 3 jours", price:"750€", dep:100, desc:"6 looks répartis sur 3 jours, parcours complet de perfectionnement, 10h-17h chaque jour.", bullets:["Parcours nude / cut crease / sophistiqué","Préparation à la diversité des clientes","Gestion du matériel"], note:"Acompte 100€ non remboursable · Modèle 15€/séance"}
 ];
 
@@ -231,9 +231,16 @@ ALL_ITEMS.forEach(item=>{
   pickList.appendChild(row);
 });
 
+// L'utilisateur ne peut avancer que via les boutons "Continuer", qui valident
+// les champs de l'étape en cours. maxStepUnlocked mémorise jusqu'où il a
+// légitimement progressé : les onglets ne permettent de revenir en arrière,
+// jamais de sauter en avant.
+let maxStepUnlocked = 1;
+
 function selectItem(item){
   current = {...item};
   depState = { actif:false, montant:0, label:'' };
+  maxStepUnlocked = 2;
   document.querySelectorAll('.pick-row').forEach(r=>{
     r.classList.toggle('sel', r.querySelector('.pk-name').textContent === item.name);
   });
@@ -244,8 +251,42 @@ function selectItem(item){
   document.getElementById('wizard').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
+function validateStep1(){
+  if(!current){ alert("Choisissez d'abord une prestation à l'étape 1."); return false; }
+  return true;
+}
+function validateStep2(){
+  const date = document.getElementById('date_rdv').value;
+  const heure = document.getElementById('heure_rdv').value;
+  if(!date){ alert("Merci de choisir une date avant de continuer."); return false; }
+  if(current.type === 'slot' && !heure){ alert("Merci de choisir un créneau horaire avant de continuer."); return false; }
+  if(current.type === 'slot' && depState.actif && !document.getElementById('dep-address').value.trim()){
+    alert("Merci de renseigner votre adresse complète pour le déplacement.");
+    return false;
+  }
+  return true;
+}
+function validateStep3(){
+  const nom = document.getElementById('nom').value.trim();
+  const email = document.getElementById('email').value.trim();
+  if(!nom){ alert("Merci de renseigner votre nom avant de continuer."); return false; }
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ alert("Merci de renseigner un e-mail valide avant de continuer."); return false; }
+  return true;
+}
+const STEP_VALIDATORS = { 2:validateStep1, 3:validateStep2, 4:validateStep3 };
+
+// Seule fonction à utiliser pour AVANCER d'une étape (boutons "Continuer").
+function nextStep(n){
+  const validate = STEP_VALIDATORS[n];
+  if(validate && !validate()) return;
+  maxStepUnlocked = Math.max(maxStepUnlocked, n);
+  goStep(n);
+}
+
+// goStep() se contente d'afficher une étape déjà débloquée (retour arrière,
+// clic sur un onglet déjà atteint) — elle ne valide jamais rien elle-même.
 function goStep(n){
-  if(n>1 && !current){ alert("Choisissez d'abord une prestation à l'étape 1."); n=1; }
+  if(n > maxStepUnlocked) return;
   document.querySelectorAll('.wz-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('wz-'+n).classList.add('active');
   document.querySelectorAll('.wz-step-tab').forEach(t=>{
@@ -259,7 +300,14 @@ function goStep(n){
   }
   if(n===4) renderSummary();
 }
-document.querySelectorAll('.wz-step-tab').forEach(t=>t.addEventListener('click', ()=>goStep(+t.dataset.step)));
+document.querySelectorAll('.wz-step-tab').forEach(t=>t.addEventListener('click', ()=>{
+  const n = +t.dataset.step;
+  if(n <= maxStepUnlocked){
+    goStep(n);
+  } else {
+    alert("Merci de compléter l'étape en cours avant de passer à la suivante.");
+  }
+}));
 
 function deplacementMontant(){
   if(!current || current.type !== 'slot') return 0;
