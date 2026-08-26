@@ -556,4 +556,3 @@ async function submitReservation(){
     statusEl.style.color = "#d98787";
   }
 }
-
