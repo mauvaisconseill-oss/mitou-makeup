@@ -1,0 +1,153 @@
+/* ============================================================
+   ADMIN — reprend les variables de style.css (chargé avant ce
+   fichier dans admin.html). Ne redéfinit rien du site public.
+   ============================================================ */
+
+.admin-body{min-height:100vh}
+
+/* ---------- écran de connexion ---------- */
+.admin-login{
+  min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  padding:24px;
+  position:relative;
+}
+.admin-login:before{
+  content:"";position:absolute;top:12%;left:50%;transform:translateX(-50%);
+  width:60vw;max-width:520px;height:60vw;max-height:520px;border-radius:50%;
+  background:radial-gradient(circle,var(--gold-dim) 0%,rgba(163,128,63,0) 70%);
+  pointer-events:none;
+}
+.admin-login-box{
+  position:relative;width:100%;max-width:340px;
+  border:1px solid var(--line);background:var(--panel);
+  padding:38px 30px;text-align:center;
+}
+.admin-login-box .logo{display:block;margin-bottom:6px}
+.admin-login-kicker{
+  font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);
+  margin-bottom:28px;
+}
+.admin-login-box label{
+  display:block;text-align:left;font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:7px;
+}
+.admin-login-box input{
+  width:100%;background:transparent;border:1px solid #2c2a26;color:var(--text);
+  padding:13px 14px;font-size:14px;outline:none;font-family:var(--font-sans);
+  text-align:center;letter-spacing:.1em;
+}
+.admin-login-box input:focus{border-color:rgba(255,255,255,.35)}
+.admin-login-btn{width:100%;margin-top:18px;text-align:center}
+.admin-login-err{
+  min-height:16px;margin-top:14px;font-size:11.5px;color:#d98787;
+}
+
+/* ---------- header dashboard ---------- */
+.admin-header{
+  position:sticky;top:0;z-index:40;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 5%;background:rgba(10,10,9,.9);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.admin-tag{
+  font-family:var(--font-sans);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--gold);border:1px solid var(--gold-soft);padding:3px 8px;margin-left:10px;
+  vertical-align:middle;font-weight:700;
+}
+.admin-header-actions{display:flex;gap:10px}
+.admin-btn{
+  border:1px solid var(--line);color:var(--text);background:transparent;
+  padding:10px 16px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;
+  transition:border-color .25s ease,background .25s ease;
+}
+.admin-btn:hover{border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.03)}
+.admin-btn.ghost{color:var(--muted)}
+.admin-btn.ghost:hover{color:var(--text)}
+
+/* ---------- stats ---------- */
+.admin-stats{
+  display:flex;flex-wrap:wrap;gap:10px 28px;
+  padding:24px 5% 0;
+}
+.admin-stat{display:flex;flex-direction:column;gap:4px}
+.admin-stat-num{
+  font-family:var(--font-display);font-style:italic;font-weight:560;font-size:26px;
+  color:var(--text);font-variant-numeric:oldstyle-nums;
+}
+.admin-stat-label{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+
+/* ---------- filtres ---------- */
+.admin-filters{display:flex;gap:8px;flex-wrap:wrap;padding:20px 5% 0}
+.admin-chip{
+  border:1px solid var(--line);color:var(--muted);background:transparent;
+  padding:8px 15px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;
+  transition:all .25s ease;
+}
+.admin-chip:hover{color:var(--text);border-color:rgba(255,255,255,.35)}
+.admin-chip.active{background:var(--text);color:#0a0a09;border-color:var(--text)}
+
+/* ---------- board / colonnes ---------- */
+.admin-board{
+  display:grid;grid-template-columns:1fr;gap:20px;
+  padding:26px 5% 80px;align-items:start;
+}
+.admin-col{border:1px solid var(--line);background:var(--panel);min-height:120px}
+.admin-col-title{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 18px;border-bottom:1px solid var(--line);
+  font-family:var(--font-display);font-weight:540;font-style:normal;font-size:16px;color:var(--text);
+}
+.admin-col[data-status="acceptée"] .admin-col-title{color:#bfe3bf}
+.admin-col[data-status="refusée"] .admin-col-title{color:#e3bcbc}
+.admin-col-count{
+  font-family:var(--font-sans);font-size:11px;font-weight:700;color:var(--muted);
+  border:1px solid var(--line);border-radius:20px;padding:2px 9px;
+}
+.admin-col-body{display:flex;flex-direction:column;gap:12px;padding:16px;max-height:74vh;overflow-y:auto}
+.admin-empty{font-size:12px;color:var(--muted);font-style:italic;padding:8px 2px}
+
+/* ---------- carte réservation ---------- */
+.admin-card{
+  border:1px solid var(--line);background:var(--bg);padding:16px;
+  transition:border-color .25s ease;
+}
+.admin-card:hover{border-color:rgba(255,255,255,.3)}
+.admin-card-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.admin-card-type{
+  font-size:9px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--gold);
+}
+.admin-card-total{
+  font-family:var(--font-display);font-style:italic;font-weight:560;font-size:16px;color:var(--text);
+  font-variant-numeric:oldstyle-nums;
+}
+.admin-card-name{
+  font-family:var(--font-display);font-weight:540;font-style:normal;font-size:18px;color:var(--text);
+  margin-bottom:3px;
+}
+.admin-card-service{font-size:12px;color:var(--muted);margin-bottom:10px}
+.admin-card-meta{
+  display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--muted);
+  border-top:1px solid var(--line);padding-top:10px;margin-bottom:4px;
+}
+.admin-card-meta span b{color:var(--text);font-weight:600}
+.admin-card-capture{
+  display:inline-block;margin-top:10px;font-size:11px;color:var(--gold);
+  text-decoration:underline;text-underline-offset:3px;
+}
+.admin-card-actions{display:flex;gap:8px;margin-top:14px}
+.admin-card-actions button{
+  flex:1;padding:10px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;
+  border:1px solid var(--line);transition:all .2s ease;
+}
+.admin-card-actions .accept{background:#9bcf9b;color:#0a0a09;border-color:#9bcf9b}
+.admin-card-actions .accept:hover{opacity:.85}
+.admin-card-actions .refuse{background:transparent;color:#d98787;border-color:#d98787}
+.admin-card-actions .refuse:hover{background:rgba(217,135,135,.1)}
+.admin-card-actions .revert{background:transparent;color:var(--muted);border-color:var(--line)}
+.admin-card-actions .revert:hover{color:var(--text);border-color:rgba(255,255,255,.4)}
+
+@media(min-width:900px){
+  .admin-board{grid-template-columns:repeat(3,1fr);gap:22px}
+  .admin-col-body{max-height:64vh}
+}
