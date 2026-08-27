@@ -9,7 +9,7 @@
    Il faut créer l'utilisateur admin dans Supabase > Authentication
    > Users > Add user (voir la note en bas de ce fichier).
    ============================================================ */
-const SUPABASE_URL = "https://cayadmbypnfukskotrma.supabase.co/rest/v1/";
+const SUPABASE_URL = "https://cayadmbypnfukskotrma.supabase.co/";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNheWFkbWJ5cG5mdWtza290cm1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0OTcxODIsImV4cCI6MjEwMzA3MzE4Mn0._j5jQ1kXYOz5NhJLBsRlGXI8HEBRMQCo3ka3QrjYUe0"; 
 
 let supabase = null;
