@@ -3,10 +3,14 @@
    Reprend EXACTEMENT les mêmes identifiants Supabase que script.js.
    ⚠️ Pense à mettre les vraies valeurs ici aussi (les deux fichiers
    doivent pointer vers le même projet Supabase).
+
+   ⚠️ CONNEXION : ce fichier utilise maintenant Supabase Auth
+   (email + mot de passe), au lieu d'un mot de passe en dur.
+   Il faut créer l'utilisateur admin dans Supabase > Authentication
+   > Users > Add user (voir la note en bas de ce fichier).
    ============================================================ */
 const SUPABASE_URL = "https://cayadmbypnfukskotrma.supabase.co/rest/v1/";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNheWFkbWJ5cG5mdWtza290cm1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0OTcxODIsImV4cCI6MjEwMzA3MzE4Mn0._j5jQ1kXYOz5NhJLBsRlGXI8HEBRMQCo3ka3QrjYUe0"; 
-const ADMIN_PASSWORD = "MitouAdmin2026";
 
 let supabase = null;
 try{
@@ -22,36 +26,62 @@ try{
 /* ---------- connexion ---------- */
 const loginScreen = document.getElementById('admin-login');
 const dashScreen  = document.getElementById('admin-dash');
+const emailInput  = document.getElementById('admin-email'); // ⚠️ à ajouter dans admin.html, voir note plus bas
 const passInput   = document.getElementById('admin-pass');
 const loginBtn    = document.getElementById('admin-login-btn');
 const loginErr    = document.getElementById('admin-login-err');
 
-function tryLogin(){
-  if(passInput.value === ADMIN_PASSWORD){
-    sessionStorage.setItem('mitou_admin_ok', '1');
-    loginErr.textContent = '';
-    showDash();
-  } else {
-    loginErr.textContent = "Mot de passe incorrect.";
+async function tryLogin(){
+  if(!supabase){
+    loginErr.textContent = "Supabase non configuré.";
+    return;
   }
+  loginErr.textContent = "";
+  loginBtn.disabled = true;
+  loginBtn.textContent = "Connexion…";
+
+  const email = emailInput ? emailInput.value.trim() : '';
+  const password = passInput.value;
+
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+  loginBtn.disabled = false;
+  loginBtn.textContent = "Entrer →";
+
+  if(error){
+    loginErr.textContent = "Email ou mot de passe incorrect.";
+    return;
+  }
+  showDash();
 }
+
 loginBtn.addEventListener('click', tryLogin);
 passInput.addEventListener('keydown', e=>{ if(e.key==='Enter') tryLogin(); });
+if(emailInput){
+  emailInput.addEventListener('keydown', e=>{ if(e.key==='Enter') tryLogin(); });
+}
 
 function showDash(){
   loginScreen.style.display = 'none';
   dashScreen.style.display = 'block';
   loadData();
 }
-document.getElementById('logout-btn').addEventListener('click', ()=>{
-  sessionStorage.removeItem('mitou_admin_ok');
+
+document.getElementById('logout-btn').addEventListener('click', async ()=>{
+  if(supabase) await supabase.auth.signOut();
   location.reload();
 });
 document.getElementById('refresh-btn').addEventListener('click', loadData);
 
-if(sessionStorage.getItem('mitou_admin_ok') === '1'){
-  showDash();
+/* Vérifie s'il y a déjà une session active au chargement de la page */
+async function checkSession(){
+  if(!supabase) return;
+  const { data } = await supabase.auth.getSession();
+  if(data.session){
+    showDash();
+  }
 }
+checkSession();
 
 /* ---------- filtres ---------- */
 let activeFilter = 'all';
@@ -227,14 +257,24 @@ async function updateStatus(card, newStatus){
 }
 
 /* ============================================================
-   NOTE — pour que la colonne "Mariée" fonctionne comme les deux
-   autres (accepter / refuser), ajoute une colonne status dans
-   Supabase, table demandes_mariee :
+   NOTES
 
-   SQL à lancer dans Supabase > SQL Editor :
+   1) Colonne "status" manquante sur demandes_mariee — pour que
+   la colonne "Mariée" fonctionne comme les deux autres (accepter /
+   refuser), lance ceci dans Supabase > SQL Editor :
 
    alter table demandes_mariee
      add column status text not null default 'en attente';
 
    Rien à faire côté "reservations", la colonne status existe déjà.
+
+   2) Créer ton compte admin (Supabase Auth) — dans Supabase, va
+   dans Authentication > Users > Add user > Create new user.
+   Renseigne un email et un mot de passe, coche "Auto Confirm User",
+   puis clique "Create user". C'est cet email/mot de passe qu'il
+   faudra taper dans l'écran de connexion de admin.html.
+
+   3) Il faut ajouter un champ email dans admin.html — voir le
+   fichier admin.html fourni séparément, qui contient déjà le
+   champ <input id="admin-email">.
    ============================================================ */
