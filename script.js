@@ -1,16 +1,9 @@
 const PAYPAL_HANDLE = "Mitoumakeup";
 const IG_HANDLE = "mitou_makeup";
 
-/* ============================================================
-   SUPABASE — à configurer avec les infos du NOUVEAU projet
-   (celui de makeupmitou@gmail.com, pas swoohair)
-   Dashboard > Project Settings > API > Project URL / anon public key
-   ============================================================ */
 const SUPABASE_URL = "https://VOTRE-PROJET.supabase.co"; // ⚠️ à remplacer
 const SUPABASE_ANON_KEY = "VOTRE_CLE_ANON_PUBLIC";        // ⚠️ à remplacer
 
-// ⚠️ Sécurisé : si le script Supabase n'est pas chargé (ou mal configuré),
-// on ne plante plus jamais tout le reste du site (menu, sections, wizard...).
 let supabase = null;
 try{
   if(window.supabase && typeof window.supabase.createClient === 'function'){
@@ -21,10 +14,6 @@ try{
 }catch(e){
   console.warn('Supabase : initialisation impossible, le site continue sans.', e);
 }
-
-/* N'oublie pas d'ajouter cette ligne dans index.html, AVANT <script src="script.js">
-   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-*/
 
 /* ---------- menu mobile ---------- */
 const menuBtn = document.querySelector('.menu-btn');
@@ -38,24 +27,20 @@ const observer = new IntersectionObserver(entries=>{
 },{threshold:.12});
 document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
 
-// Filet de sécurité : si une section n'est jamais révélée (bug JS ailleurs,
-// navigateur qui bloque l'observer, etc.), on force son affichage après 1.5s
-// pour ne jamais laisser une section invisible durablement.
 setTimeout(()=>{
   document.querySelectorAll('.reveal:not(.show)').forEach(el=>el.classList.add('show'));
 }, 1500);
 
 /* ---------- catalogue ---------- */
 const TONES = {
-  nude:      {name:"Makeup Nude", price:"80€", dep:30, color:"#c6b6a3", desc:"Un teint lumineux, un regard structuré en douceur — parfait en journée comme en soirée. Avec ou sans faux cils."},
-  cutcrease: {name:"Makeup Cut Crease", price:"90€", dep:30, color:"#8c6459", desc:"Un regard précis et graphique, contouring des paupières pour une intensité maîtrisée. Avec ou sans faux cils."},
-  sophistique:{name:"Makeup Sophistiqué", price:"90€", dep:30, color:"#332628", desc:"Le look le plus abouti : contouring complet, finitions travaillées. Avec ou sans faux cils."}
+  softglam:   {name:"Makeup Soft Glam", price:"90€", dep:30, color:"#c6b6a3", desc:"Un teint lumineux, un regard structuré en douceur — parfait en journée comme en soirée. Avec ou sans faux cils."},
+  sophistique:{name:"Makeup Sophistiqué", price:"95€", dep:30, color:"#332628", desc:"Le look le plus travaillé : finitions soignées, détails travaillés et mise en beauté complète. Avec ou sans faux cils."}
 };
 const MARIEE = [
-  {name:"Fiancée", price:"200€", dep:60, detail:"Un maquillage complet pour les moments qui précèdent le grand jour — essai possible en amont."},
-  {name:"Mariée", price:"250€", dep:70, detail:"Le maquillage du jour J, pensé pour tenir des heures sans retouche."},
-  {name:"Jour et nuit", price:"480€", dep:100, detail:"Deux maquillages complets, matin et soirée, sans suivi en journée. Essai offert pour définir le look en amont."},
-  {name:"Suivie journée", price:"750€", dep:150, detail:"Maquillage du matin puis présence à vos côtés toute la journée pour les retouches, avec un nouveau look possible en soirée. Fin de service à 23h."}
+  {name:"Fiancée", price:"200€", dep:60, detail:"Un maquillage complet pour les moments qui précèdent le grand jour — essai possible en amont.", deplacement:"Déplacement : de 60€ à 80€ selon la distance."},
+  {name:"Mariée", price:"250€", dep:70, detail:"Le maquillage du jour J, pensé pour tenir des heures sans retouche.", deplacement:"Déplacement : de 60€ à 80€ selon la distance."},
+  {name:"Jour et nuit", price:"480€", dep:100, detail:"Deux maquillages, matin et soirée, sans suivi en journée. Essai offert pour définir le look en amont.", deplacement:"Déplacement : 80€."},
+  {name:"Suivie journée", price:"750€", dep:150, detail:"Maquillage du matin puis présence à vos côtés toute la journée pour les retouches, avec un nouveau look possible en soirée. Fin de service à 23h.", deplacement:"Déplacement : 80€."}
 ];
 const FORMATIONS = [
   {name:"Formation 1 journée", price:"300€", dep:100, desc:"Réalisation de 2 looks (nude, cut crease, sophistiqué au choix), de 10h à 17h, en formation individuelle.", bullets:["Techniques de création des meilleurs looks","Gestion du matériel","Adaptation selon la morphologie"], note:"Acompte 100€ non remboursable · Modèle 15€ à votre charge"},
@@ -117,11 +102,11 @@ MARIEE.forEach((m, i)=>{
   el.addEventListener('click', ()=>{
     document.querySelectorAll('.tl-stop').forEach(s=>s.classList.remove('active'));
     el.classList.add('active');
-    tlDetail.innerHTML = `<b>${m.name}</b> — ${m.detail}`;
+    tlDetail.innerHTML = `<b>${m.name}</b> — ${m.detail}<br><span style="opacity:.75">${m.deplacement}</span>`;
   });
   tlWrap.appendChild(el);
 });
-tlDetail.innerHTML = `<b>${MARIEE[0].name}</b> — ${MARIEE[0].detail}`;
+tlDetail.innerHTML = `<b>${MARIEE[0].name}</b> — ${MARIEE[0].detail}<br><span style="opacity:.75">${MARIEE[0].deplacement}</span>`;
 
 /* ---------- accordion formations ---------- */
 const accWrap = document.getElementById('accordion');
@@ -149,7 +134,6 @@ FORMATIONS.forEach((f, i)=>{
 });
 
 /* ---------- avis (Supabase) ---------- */
-// Avis de secours affichés le temps que Supabase réponde / si erreur réseau
 let AVIS = [
   {nom:"Aïcha",note:5,service:"Makeup mariée",commentaire:"Un rendu naturel et tenu toute la journée, exactement le look que je voulais."},
   {nom:"Lina",note:5,service:"Makeup sophistiqué",commentaire:"Le cut crease était d'une précision incroyable."},
@@ -231,10 +215,6 @@ ALL_ITEMS.forEach(item=>{
   pickList.appendChild(row);
 });
 
-// L'utilisateur ne peut avancer que via les boutons "Continuer", qui valident
-// les champs de l'étape en cours. maxStepUnlocked mémorise jusqu'où il a
-// légitimement progressé : les onglets ne permettent de revenir en arrière,
-// jamais de sauter en avant.
 let maxStepUnlocked = 1;
 
 function selectItem(item){
@@ -276,7 +256,6 @@ function validateStep3(){
 }
 const STEP_VALIDATORS = { 2:validateStep1, 3:validateStep2, 4:validateStep3 };
 
-// Seule fonction à utiliser pour AVANCER d'une étape (boutons "Continuer").
 function nextStep(n){
   const validate = STEP_VALIDATORS[n];
   if(validate && !validate()) return;
@@ -284,8 +263,6 @@ function nextStep(n){
   goStep(n);
 }
 
-// goStep() se contente d'afficher une étape déjà débloquée (retour arrière,
-// clic sur un onglet déjà atteint) — elle ne valide jamais rien elle-même.
 function goStep(n){
   if(n > maxStepUnlocked) return;
   document.querySelectorAll('.wz-panel').forEach(p=>p.classList.remove('active'));
@@ -317,7 +294,6 @@ function deplacementMontant(){
 function prixNumerique(str){ const n = parseFloat(String(str).replace('€','').replace(',','.')); return isNaN(n)?0:n; }
 
 /* ---------- Déplacement : géolocalisation (Nominatim + Haversine) ---------- */
-// ★ À CONFIGURER : coordonnées du point de départ de Mitou (adresse pro / domicile)
 const ORIGIN = { lat: 48.8566, lon: 2.3522 }; // placeholder — remplacer par la vraie adresse
 const IDF_DEPTS = ['75','77','78','91','92','93','94','95'];
 let depState = { actif:false, montant:0, label:'', personnes:'3' };
@@ -420,7 +396,6 @@ async function refreshHeureAvailability(){
     opt.value = `${h}:00`; opt.textContent = `${h}:00`;
     heureSel.appendChild(opt);
   }
-  // Grise les heures bloquées par l'admin pour la date sélectionnée (si une date est déjà choisie)
   const date = document.getElementById('date_rdv').value;
   if(!date) return;
   try{
@@ -488,7 +463,7 @@ async function submitMariee(){
       nom, email, telephone:tel, date_mariage:date, formule, message: msg
     });
     if(error) throw error;
-    statusEl.textContent = "Demande envoyée ✓ — je vous recontacte par e-mail, généralement sous 48h.";
+    statusEl.textContent = "Demande envoyée ✓ — je vous recontacte par Instagram, généralement sous 48h.";
     statusEl.style.color = "#9bcf9b";
     document.querySelectorAll('.mariee-form input,.mariee-form select,.mariee-form textarea,.mariee-form button').forEach(el=>el.disabled=true);
   }catch(e){
@@ -521,7 +496,6 @@ async function submitReservation(){
   statusEl.style.color = "";
 
   try{
-    // 1) Upload de la capture dans le bucket Storage "captures" (à créer dans Supabase, en public)
     const cheminFichier = `${Date.now()}_${captureFile.name}`;
     const { error: uploadError } = await supabase.storage
       .from('captures')
@@ -530,7 +504,6 @@ async function submitReservation(){
     const { data: urlData } = supabase.storage.from('captures').getPublicUrl(cheminFichier);
     const captureUrl = urlData.publicUrl;
 
-    // 2) Insertion de la réservation
     const { error: insertError } = await supabase.from('reservations').insert({
       type: current.type,
       prestation: current.name,
