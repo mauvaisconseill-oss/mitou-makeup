@@ -4,12 +4,8 @@
    ⚠️ Pense à mettre les vraies valeurs ici aussi (les deux fichiers
    doivent pointer vers le même projet Supabase).
    ============================================================ */
-const SUPABASE_URL = "https://TON-PROJET.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGci..."; // ou sb_publishable_...
-/* ⚠️ Mot de passe admin — change-le avant de mettre le site en ligne.
-   Ce contrôle est fait côté navigateur : pratique pour une seule
-   personne, mais pas un vrai système de sécurité. Si tu veux un accès
-   plus sûr plus tard, on pourra passer à Supabase Auth (email + mdp). */
+const SUPABASE_URL = "https://cayadmbypnfukskotrma.supabase.co/rest/v1/";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNheWFkbWJ5cG5mdWtza290cm1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0OTcxODIsImV4cCI6MjEwMzA3MzE4Mn0._j5jQ1kXYOz5NhJLBsRlGXI8HEBRMQCo3ka3QrjYUe0"; 
 const ADMIN_PASSWORD = "MitouAdmin2026";
 
 let supabase = null;
