@@ -4,7 +4,7 @@
 const SUPABASE_URL = "https://cayadmbypnfukskotrma.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNheWFkbWJ5cG5mdWtza290cm1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0OTcxODIsImV4cCI6MjEwMzA3MzE4Mn0._j5jQ1kXYOz5NhJLBsRlGXI8HEBRMQCo3ka3QrjYUe0";
 
-const ADMIN_PASSWORD = "change-moi-123"; // ⚠️ mets ton propre mot de passe ici
+const ADMIN_PASSWORD = "makeup00Mitou@"; // ⚠️ mets ton propre mot de passe ici
 
 let supabaseClient = null;
 try{
