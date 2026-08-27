@@ -1,297 +1,531 @@
-:root{
-  --bg:#0a0a09;
-  --panel:#141311;
-  --text:#ffffff;
-  --muted:#726d62;
-  --line:rgba(255,255,255,.17);
-  --gold:#a3803f;             /* doré — réservé aux tout petits accents (prix, étoiles) */
-  --gold-soft:rgba(163,128,63,.28);   /* nettement adouci */
-  --gold-dim:rgba(163,128,63,.08);    /* nettement adouci */
-  --live:var(--gold);
-  --accent:var(--gold);
-  --font-display:'Fraunces',serif;
-  --font-sans:'Switzer','Space Grotesk',sans-serif;
+const PAYPAL_HANDLE = "Mitoumakeup";
+const IG_HANDLE = "mitou_makeup";
+
+const SUPABASE_URL = "https://VOTRE-PROJET.supabase.co"; // ⚠️ à remplacer
+const SUPABASE_ANON_KEY = "VOTRE_CLE_ANON_PUBLIC";        // ⚠️ à remplacer
+
+let supabase = null;
+try{
+  if(window.supabase && typeof window.supabase.createClient === 'function'){
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } else {
+    console.warn('Supabase JS non chargé — vérifie le <script> CDN dans index.html.');
+  }
+}catch(e){
+  console.warn('Supabase : initialisation impossible, le site continue sans.', e);
 }
-*{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{
-  background-color:var(--bg);
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'%3E%3Cpath d='M48 5 L91 48 L48 91 L5 48 Z' fill='none' stroke='%23a3803f' stroke-width='0.25' stroke-opacity='0.015'/%3E%3C/svg%3E");
-  background-repeat:repeat;
-  background-size:96px 96px;
-  background-attachment:fixed;
-  color:var(--text);
-  font-family:var(--font-sans);
-  font-size:15px;
-  line-height:1.6;
-  overflow-x:hidden;
+
+/* ---------- menu mobile ---------- */
+const menuBtn = document.querySelector('.menu-btn');
+const mobileMenu = document.querySelector('.mobile-menu');
+menuBtn.addEventListener('click',()=>mobileMenu.classList.toggle('open'));
+document.querySelectorAll('.mobile-menu a').forEach(a=>a.addEventListener('click',()=>mobileMenu.classList.remove('open')));
+
+/* ---------- reveal ---------- */
+const observer = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('show'); observer.unobserve(e.target); } });
+},{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+
+setTimeout(()=>{
+  document.querySelectorAll('.reveal:not(.show)').forEach(el=>el.classList.add('show'));
+}, 1500);
+
+/* ---------- catalogue ---------- */
+const TONES = {
+  softglam:   {name:"Makeup Soft Glam", price:"90€", dep:30, color:"#c6b6a3", desc:"Un teint lumineux, un regard structuré en douceur — parfait en journée comme en soirée. Avec ou sans faux cils."},
+  sophistique:{name:"Makeup Sophistiqué", price:"95€", dep:30, color:"#332628", desc:"Le look le plus travaillé : finitions soignées, détails travaillés et mise en beauté complète. Avec ou sans faux cils."}
+};
+const MARIEE = [
+  {name:"Fiancée", price:"200€", dep:60, detail:"Un maquillage complet pour les moments qui précèdent le grand jour — essai possible en amont.", deplacement:"Déplacement : de 60€ à 80€ selon la distance."},
+  {name:"Mariée", price:"250€", dep:70, detail:"Le maquillage du jour J, pensé pour tenir des heures sans retouche.", deplacement:"Déplacement : de 60€ à 80€ selon la distance."},
+  {name:"Jour et nuit", price:"480€", dep:100, detail:"Deux maquillages, matin et soirée, sans suivi en journée. Essai offert pour définir le look en amont.", deplacement:"Déplacement : 80€."},
+  {name:"Suivie journée", price:"750€", dep:150, detail:"Maquillage du matin puis présence à vos côtés toute la journée pour les retouches, avec un nouveau look possible en soirée. Fin de service à 23h.", deplacement:"Déplacement : 80€."}
+];
+const FORMATIONS = [
+  {name:"Formation 1 journée", price:"300€", dep:100, desc:"Réalisation de 2 looks (nude, cut crease, sophistiqué au choix), de 10h à 17h, en formation individuelle.", bullets:["Techniques de création des meilleurs looks","Gestion du matériel","Adaptation selon la morphologie"], note:"Acompte 100€ non remboursable · Modèle 15€ à votre charge"},
+  {name:"Formation 2 jours", price:"650€", dep:100, desc:"4 looks répartis sur 2 jours, 2 créations par jour, format individuel, 10h-17h chaque jour.", bullets:["Approfondissement des techniques","Modèles variés chaque jour","Gestion du matériel"], note:"Acompte 100€ non remboursable · Modèle 15€/séance"},
+  {name:"Formation 3 jours", price:"750€", dep:100, desc:"6 looks répartis sur 3 jours, parcours complet de perfectionnement, 10h-17h chaque jour.", bullets:["Parcours nude / cut crease / sophistiqué","Préparation à la diversité des clientes","Gestion du matériel"], note:"Acompte 100€ non remboursable · Modèle 15€/séance"}
+];
+
+/* ---------- triptyque interactif ---------- */
+let activeTone = null;
+
+function applyTone(tone, commit){
+  const t = TONES[tone];
+  if(!t) return;
+  document.querySelectorAll('.swatch-block').forEach(b=>b.classList.toggle('active', b.dataset.tone===tone));
+  document.documentElement.style.setProperty('--live', t.color);
+  if(commit){
+    document.getElementById('sp-price').textContent = t.price;
+    document.getElementById('sp-dep').textContent = `Acompte ${t.dep}€ non remboursable`;
+    document.getElementById('sp-desc').textContent = t.desc;
+    document.getElementById('swatch-panel').classList.add('open');
+    activeTone = tone;
+    document.getElementById('sp-btn').onclick = ()=>{
+      selectItem({name:t.name, price:t.price, dep:t.dep, type:'slot', desc:t.desc});
+    };
+  }
 }
-a{color:inherit;text-decoration:none}
-button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
-img{max-width:100%;display:block}
-@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
-header{position:sticky;top:0;z-index:60;display:flex;align-items:center;justify-content:space-between;padding:22px 5%;background:rgba(10,10,9,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-.logo{font-family:var(--font-display);font-weight:560;font-size:21px;letter-spacing:-.01em}
-nav{display:none}
-.menu-btn{width:30px;height:22px;position:relative}
-.menu-btn i{position:absolute;left:0;right:0;height:1px;background:var(--text)}
-.menu-btn i:nth-child(1){top:1px}
-.menu-btn i:nth-child(2){top:10px}
-.menu-btn i:nth-child(3){top:19px}
-.mobile-menu{position:fixed;inset:64px 0 auto 0;background:var(--bg);z-index:59;padding:30px 6%;display:flex;flex-direction:column;gap:20px;transform:translateY(-130%);transition:.5s cubic-bezier(.16,1,.3,1);border-bottom:1px solid var(--line)}
-.mobile-menu.open{transform:translateY(0)}
-.mobile-menu a{font-family:var(--font-display);font-weight:500;font-size:23px;letter-spacing:-.01em}
-.hero{min-height:78vh;display:flex;flex-direction:column;justify-content:center;padding:60px 5%;position:relative}
-.hero:before{content:"";position:absolute;top:8%;left:50%;transform:translateX(-50%);width:60vw;max-width:640px;height:60vw;max-height:640px;border-radius:50%;
-  background:radial-gradient(circle,var(--gold-dim) 0%,rgba(163,128,63,0) 70%);pointer-events:none}
-.hero-kicker{display:inline-flex;align-items:center;gap:12px;font-size:11px;letter-spacing:.3em;font-weight:600;text-transform:uppercase;color:var(--text);margin-bottom:24px;position:relative}
-.hero-kicker:before{content:"";width:30px;height:1px;background:var(--text)}
-.hero-title{font-family:var(--font-display);font-optical-sizing:auto;font-weight:560;font-style:normal;font-size:clamp(40px,7.5vw,84px);line-height:1.02;letter-spacing:-.03em;max-width:780px;margin-bottom:26px;position:relative}
-.hero-title em,.hero-title i{font-style:italic;color:var(--gold)}
-.hero-text{color:var(--muted);font-size:14.5px;line-height:1.8;max-width:420px;margin-bottom:38px;position:relative}
-.hero-cta{display:flex;flex-wrap:wrap;gap:14px;position:relative}
-.btn-primary{background:var(--text);color:#0a0a09;padding:17px 30px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;transition:transform .3s ease}
-.btn-primary:hover{transform:translateY(-2px)}
-.btn-outline{border:1px solid var(--text);color:var(--text);padding:17px 30px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;transition:border-color .3s ease,color .3s ease}
-.btn-outline:hover{border-color:rgba(255,255,255,.6);color:var(--text)}
-.triptych{display:grid;grid-template-columns:1fr;gap:14px;margin-top:4px}
-.swatch-block{position:relative;overflow:hidden;padding:30px 26px 26px;min-height:150px;cursor:pointer;transition:transform .3s ease,border-color .3s ease;display:flex;flex-direction:column;justify-content:space-between;border-radius:0;background:var(--panel);border:1px solid var(--line);border-top:2px solid var(--line)}
-.swatch-block:hover{transform:translateY(-4px);border-color:rgba(255,255,255,.32);border-top-color:rgba(255,255,255,.32)}
-.swatch-block.active{border-color:var(--text);border-top-color:var(--text)}
-.swatch-block:before{content:"";position:absolute;top:28px;right:26px;width:9px;height:9px;border-radius:50%;background:var(--dot,var(--gold));box-shadow:0 0 0 1px rgba(163,128,63,.22)}
-.swatch-block[data-tone="softglam"]{--dot:#c6b6a3}
-.swatch-block[data-tone="sophistique"]{--dot:#5c4a44}
-.sw-index{font-family:var(--font-sans);font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);align-self:flex-start;position:relative;z-index:1}
-.sw-index:before{content:"N°"}
-.sw-bottom{position:relative;z-index:1}
-.swatch-block .sw-name{font-family:var(--font-display);font-weight:540;font-style:normal;font-size:clamp(23px,3vw,29px);line-height:1;display:flex;align-items:baseline;gap:12px;color:var(--text)}
-.swatch-block .sw-arrow{font-family:var(--font-sans);font-style:normal;font-size:14px;color:var(--gold);opacity:0;transform:translateX(-6px);transition:opacity .3s ease,transform .3s ease}
-.swatch-block:hover .sw-arrow,.swatch-block.active .sw-arrow{opacity:1;transform:none}
-.swatch-block .sw-tag{font-size:10px;letter-spacing:.14em;text-transform:uppercase;margin-top:10px;color:var(--muted)}
-.swatch-panel{max-height:0;overflow:hidden;transition:max-height .5s cubic-bezier(.16,1,.3,1);border-bottom:1px solid var(--line)}
-.swatch-panel.open{max-height:340px}
-.swatch-panel-inner{padding:30px 5% 40px;display:flex;flex-wrap:wrap;gap:24px;justify-content:space-between;align-items:flex-end}
-.swatch-panel-inner p{max-width:440px;color:var(--muted);font-size:13.5px;line-height:1.75}
-.swatch-panel-price{font-family:var(--font-display);font-style:italic;font-weight:560;font-size:36px;color:var(--live);font-variant-numeric:oldstyle-nums}
-.swatch-panel-dep{font-size:11px;letter-spacing:.04em;color:var(--muted);margin-top:4px}
-.btn-live{background:var(--text);color:#0a0a09;padding:16px 30px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;transition:transform .3s ease}
-.btn-live:hover{transform:translateY(-2px)}
-.reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
-.reveal.show{opacity:1;transform:none}
-.section{padding:80px 5%;border-top:1px solid var(--line)}
-.sect-kicker{display:inline-flex;align-items:center;gap:10px;font-size:11px;font-weight:600;letter-spacing:.26em;text-transform:uppercase;color:var(--text);margin-bottom:14px}
-.sect-kicker:before{content:"";width:22px;height:1px;background:var(--text)}
-.sect-title{font-family:var(--font-display);font-optical-sizing:auto;font-weight:540;font-style:normal;font-size:clamp(28px,5vw,44px);line-height:1.05;letter-spacing:-.02em;margin-bottom:20px;color:var(--text)}
-.sect-title b{font-weight:540;font-style:italic;color:var(--text)}
-.portfolio-frame{
-  position:relative;
-  background:#000;
-  padding:14px;
-  border:1px solid var(--line);
-  overflow:hidden;
-  transition:transform .5s cubic-bezier(.16,1,.3,1), border-color .5s ease, box-shadow .5s ease;
-  height:100%;
+
+document.querySelectorAll('.swatch-block').forEach(block=>{
+  block.addEventListener('click', ()=> applyTone(block.dataset.tone, true));
+});
+
+const triptychEl = document.getElementById('triptych');
+if(triptychEl){
+  let touchTone = null;
+  function handleTouch(e){
+    const touch = e.touches[0];
+    if(!touch) return;
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const block = el ? el.closest('.swatch-block') : null;
+    if(block && block.dataset.tone !== touchTone){
+      touchTone = block.dataset.tone;
+      applyTone(touchTone, false);
+    }
+  }
+  triptychEl.addEventListener('touchstart', handleTouch, {passive:true});
+  triptychEl.addEventListener('touchmove', handleTouch, {passive:true});
+  triptychEl.addEventListener('touchend', ()=>{
+    if(touchTone) applyTone(touchTone, true);
+  });
 }
-.portfolio-frame:hover{
-  transform:translateY(-6px);
-  border-color:var(--gold-soft);
-  box-shadow:0 26px 50px -26px rgba(0,0,0,.7);
+
+/* ---------- timeline mariée ---------- */
+const tlWrap = document.getElementById('timeline');
+const tlDetail = document.getElementById('tl-detail');
+MARIEE.forEach((m, i)=>{
+  const el = document.createElement('div');
+  el.className = 'tl-stop' + (i===0 ? ' active' : '');
+  el.innerHTML = `<div class="tl-name">${m.name}</div><div class="tl-price">${m.price} · acompte ${m.dep}€</div>`;
+  el.addEventListener('click', ()=>{
+    document.querySelectorAll('.tl-stop').forEach(s=>s.classList.remove('active'));
+    el.classList.add('active');
+    tlDetail.innerHTML = `<b>${m.name}</b> — ${m.detail}<br><span style="opacity:.75">${m.deplacement}</span>`;
+  });
+  tlWrap.appendChild(el);
+});
+tlDetail.innerHTML = `<b>${MARIEE[0].name}</b> — ${MARIEE[0].detail}<br><span style="opacity:.75">${MARIEE[0].deplacement}</span>`;
+
+/* ---------- accordion formations ---------- */
+const accWrap = document.getElementById('accordion');
+FORMATIONS.forEach((f, i)=>{
+  const item = document.createElement('div');
+  item.className = 'acc-item';
+  item.innerHTML = `
+    <div class="acc-head">
+      <h3>${f.name}</h3>
+      <span class="acc-price">${f.price}</span>
+    </div>
+    <div class="acc-body"><div class="acc-body-inner">
+      <p>${f.desc}</p>
+      <ul>${f.bullets.map(b=>`<li>${b}</li>`).join('')}</ul>
+      <p style="font-size:11px">${f.note}</p>
+      <button onclick='selectItem({name:"${f.name}",price:"${f.price}",dep:${f.dep},type:"formation",desc:"${f.desc}"})'>Réserver cette formation →</button>
+    </div></div>
+  `;
+  item.querySelector('.acc-head').addEventListener('click', ()=>{
+    const wasOpen = item.classList.contains('open');
+    document.querySelectorAll('.acc-item').forEach(a=>a.classList.remove('open'));
+    if(!wasOpen) item.classList.add('open');
+  });
+  accWrap.appendChild(item);
+});
+
+/* ---------- avis (Supabase) ---------- */
+let AVIS = [
+  {nom:"Aïcha",note:5,service:"Makeup mariée",commentaire:"Un rendu naturel et tenu toute la journée, exactement le look que je voulais."},
+  {nom:"Lina",note:5,service:"Makeup sophistiqué",commentaire:"Le cut crease était d'une précision incroyable."},
+  {nom:"Sarah",note:5,service:"Formation 2 jours",commentaire:"Une formation complète et personnalisée, énormément progressé."}
+];
+function starStr(n){ return "★★★★★".slice(0,n)+"☆☆☆☆☆".slice(0,5-n); }
+function renderAvis(){
+  document.getElementById('avis-carousel').innerHTML = AVIS.map(a=>`
+    <div class="avis-card">
+      <div class="top"><span>${a.nom}</span><span class="stars">${starStr(a.note)}</span></div>
+      <p>"${a.commentaire}"</p>
+      <div class="tag">${a.service||''}</div>
+    </div>`).join('');
+  const moy = AVIS.length ? AVIS.reduce((s,a)=>s+a.note,0)/AVIS.length : 5;
+  document.getElementById('avg-note').textContent = moy.toFixed(1);
 }
-.portfolio-frame-inner{
-  position:relative;
-  height:100%;
-  width:100%;
-  min-height:220px;
-  border:1px solid rgba(255,255,255,.12);
-  overflow:hidden;
-  display:flex;
-  align-items:flex-end;
-  justify-content:center;
-  background:
-    radial-gradient(circle at 50% 38%, rgba(163,128,63,.10) 0%, rgba(163,128,63,0) 62%),
-    linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0) 40%);
+async function chargerAvis(){
+  try{
+    const { data, error } = await supabase
+      .from('avis')
+      .select('nom, service, note, commentaire')
+      .order('created_at', { ascending:false });
+    if(error) throw error;
+    if(data && data.length) AVIS = data;
+  }catch(e){
+    console.warn('Avis : lecture Supabase indisponible, affichage des avis par défaut.', e);
+  }
+  renderAvis();
 }
-.portfolio-frame-inner:before{
-  content:"M";
-  position:absolute;
-  top:46%;
-  left:50%;
-  transform:translate(-50%,-52%);
-  font-family:var(--font-display);
-  font-style:italic;
-  font-weight:600;
-  font-size:min(34vw,150px);
-  line-height:1;
-  color:transparent;
-  -webkit-text-stroke:1px rgba(163,128,63,.38);
-  letter-spacing:-.02em;
-  pointer-events:none;
-  user-select:none;
-  transition:transform .6s cubic-bezier(.16,1,.3,1), -webkit-text-stroke-color .6s ease;
+chargerAvis();
+
+const modal = document.getElementById('avis-modal');
+document.getElementById('open-modal').addEventListener('click', ()=>modal.classList.add('open'));
+function closeModal(){ modal.classList.remove('open'); }
+let noteChoisie = 0;
+document.getElementById('modal-rate').querySelectorAll('span').forEach(st=>{
+  st.addEventListener('click', ()=>{
+    noteChoisie = +st.dataset.v;
+    document.getElementById('modal-rate').querySelectorAll('span').forEach(s=>s.classList.toggle('on', +s.dataset.v<=noteChoisie));
+  });
+});
+async function postAvis(){
+  const nom = document.getElementById('avis-nom').value.trim();
+  const service = document.getElementById('avis-svc').value.trim() || "Prestation";
+  const commentaire = document.getElementById('avis-txt').value.trim();
+  if(!nom || !noteChoisie || !commentaire){ alert("Merci d'indiquer un prénom, une note et un commentaire."); return; }
+
+  const nouvelAvis = { nom, service, note:noteChoisie, commentaire };
+  try{
+    const { error } = await supabase.from('avis').insert(nouvelAvis);
+    if(error) throw error;
+  }catch(e){
+    console.warn('Avis : insertion Supabase indisponible, ajout local seulement.', e);
+  }
+  AVIS.unshift(nouvelAvis);
+  renderAvis();
+  document.getElementById('avis-nom').value=''; document.getElementById('avis-svc').value=''; document.getElementById('avis-txt').value='';
+  noteChoisie=0; document.getElementById('modal-rate').querySelectorAll('span').forEach(s=>s.classList.remove('on'));
+  closeModal();
 }
-.portfolio-frame:hover .portfolio-frame-inner:before{
-  transform:translate(-50%,-52%) scale(1.06);
-  -webkit-text-stroke:1px rgba(163,128,63,.6);
+
+/* ---------- wizard ---------- */
+let current = null;
+const OUVERTURE = 10*60, FERMETURE = 19*60;
+const ALL_ITEMS = [
+  ...Object.values(TONES).map(t=>({name:t.name, price:t.price, dep:t.dep, type:'slot', desc:t.desc})),
+  ...FORMATIONS.map(f=>({name:f.name, price:f.price, dep:f.dep, type:'formation', desc:f.desc}))
+];
+const pickList = document.getElementById('pick-list');
+ALL_ITEMS.forEach(item=>{
+  const row = document.createElement('div');
+  row.className = 'pick-row';
+  row.innerHTML = `<span class="pk-name">${item.name}</span><span class="pk-price">${item.price}</span>`;
+  row.addEventListener('click', ()=>{
+    document.querySelectorAll('.pick-row').forEach(r=>r.classList.remove('sel'));
+    row.classList.add('sel');
+    current = {...item};
+  });
+  pickList.appendChild(row);
+});
+
+let maxStepUnlocked = 1;
+
+function selectItem(item){
+  current = {...item};
+  depState = { actif:false, montant:0, label:'', personnes:'3' };
+  maxStepUnlocked = 2;
+  document.querySelectorAll('.pick-row').forEach(r=>{
+    r.classList.toggle('sel', r.querySelector('.pk-name').textContent === item.name);
+  });
+  if(document.getElementById('dep-non-btn')) setDep('non');
+  if(document.getElementById('dep-city')) document.getElementById('dep-city').value = '';
+  if(document.getElementById('dep-people')) document.getElementById('dep-people').value = '3';
+  if(document.getElementById('dep-address')) document.getElementById('dep-address').value = '';
+  goStep(2);
+  document.getElementById('wizard').scrollIntoView({behavior:'smooth', block:'start'});
 }
-.frame-corner{position:absolute;width:15px;height:15px;border:1px solid var(--gold-soft);z-index:2;transition:border-color .5s ease}
-.frame-corner.tl{top:10px;left:10px;border-right:none;border-bottom:none}
-.frame-corner.tr{top:10px;right:10px;border-left:none;border-bottom:none}
-.frame-corner.bl{bottom:10px;left:10px;border-right:none;border-top:none}
-.frame-corner.br{bottom:10px;right:10px;border-left:none;border-top:none}
-.portfolio-frame:hover .frame-corner{border-color:var(--gold)}
-.frame-caption{position:relative;z-index:2;width:100%;padding:20px 14px 16px;text-align:center;
-  background:linear-gradient(to top, rgba(0,0,0,.92) 10%, rgba(0,0,0,.55) 55%, transparent 100%)}
-.frame-caption:before{content:"";display:block;width:24px;height:1px;background:var(--gold-soft);margin:0 auto 10px}
-.frame-caption-label{display:block;font-family:var(--font-display);font-style:italic;font-weight:500;font-size:18px;color:var(--text)}
-.frame-caption-sub{display:block;margin-top:5px;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
-.about-photo{max-width:240px;margin-bottom:34px}
-.about-photo .portfolio-frame-inner{min-height:300px}
-.about-photo .portfolio-frame-inner:before{font-size:min(38vw,170px)}
-.portfolio-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:6px}
-.portfolio-grid .portfolio-frame{aspect-ratio:3/4}
-.portfolio-frame-inner{min-height:0}
-.portfolio-frame-inner:before{font-size:min(24vw,120px)}
-@media(min-width:700px){
-  .portfolio-grid{grid-template-columns:repeat(3,1fr);grid-auto-rows:220px;gap:14px}
-  .portfolio-grid .portfolio-frame{aspect-ratio:auto}
-  .portfolio-grid .portfolio-frame.tall{grid-row:span 2}
-  .portfolio-frame-inner:before{font-size:min(34vw,150px)}
+
+function validateStep1(){
+  if(!current){ alert("Choisissez d'abord une prestation à l'étape 1."); return false; }
+  return true;
 }
-.info-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 14px;padding-top:26px;border-top:1px solid var(--line)}
-.info-chip{font-size:12.5px;color:var(--muted);white-space:nowrap}
-.info-chip b{display:inline-block;color:var(--text);font-weight:600;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;margin-right:8px}
-.info-sep{color:var(--gold-soft);font-size:12px}
-@media(min-width:900px){.info-line{padding-top:30px}}
-.timeline-wrap{position:relative;margin-top:10px}
-.timeline{display:flex;overflow-x:auto;gap:0;padding-bottom:6px}
-.timeline::-webkit-scrollbar{height:4px}
-.timeline-wrap:after{content:"";position:absolute;top:0;right:0;bottom:6px;width:44px;background:linear-gradient(to right, rgba(10,10,9,0), var(--bg));pointer-events:none}
-.timeline-hint{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);font-weight:600}
-.timeline-hint-arrow{display:inline-block;animation:hint-slide 1.6s ease-in-out infinite}
-@keyframes hint-slide{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}
-@media(prefers-reduced-motion:reduce){.timeline-hint-arrow{animation:none}}
-@media(min-width:900px){.timeline-hint{display:none}}
-.tl-stop{flex:none;width:210px;padding:20px 22px 22px 0;border-left:1px solid var(--line);position:relative;cursor:pointer}
-.tl-stop:before{content:"";position:absolute;left:-4.5px;top:20px;width:8px;height:8px;border-radius:50%;background:var(--muted);transition:background .2s ease}
-.tl-stop.active{border-left-color:var(--text)}
-.tl-stop.active:before{background:var(--text)}
-.tl-stop .tl-name{font-family:var(--font-display);font-weight:540;font-style:normal;font-size:19px;color:var(--text)}
-.tl-stop .tl-price{font-size:13px;color:var(--muted);margin-top:6px;font-variant-numeric:oldstyle-nums}
-.tl-detail{margin-top:26px;border:1px solid var(--line);padding:22px;max-width:560px;font-size:13px;color:var(--muted);line-height:1.8}
-.tl-detail b{color:var(--text);font-weight:600}
-.mariee-form{max-width:460px}
-.mariee-form label{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
-.mariee-form label:first-of-type{margin-top:0}
-.mariee-form input,.mariee-form select,.mariee-form textarea{width:100%;background:transparent;border:1px solid #2c2a26;color:var(--text);padding:12px 13px;font-size:13.5px;outline:none;font-family:var(--font-sans)}
-.mariee-form input:focus,.mariee-form select:focus,.mariee-form textarea:focus{border-color:rgba(255,255,255,.35)}
-.mariee-form textarea{min-height:70px;resize:vertical}
-.mariee-form option{color:#111}
-.accordion{border-top:1px solid var(--line)}
-.acc-item{border-bottom:1px solid var(--line)}
-.acc-head{display:flex;justify-content:space-between;align-items:center;padding:22px 0;cursor:pointer;gap:16px}
-.acc-head h3{font-family:var(--font-display);font-weight:540;font-style:normal;font-size:21px;color:var(--text)}
-.acc-head .acc-price{font-size:15px;font-weight:600;color:var(--text);white-space:nowrap;font-variant-numeric:oldstyle-nums}
-.acc-body{max-height:0;overflow:hidden;transition:max-height .45s cubic-bezier(.16,1,.3,1)}
-.acc-item.open .acc-body{max-height:340px}
-.acc-body-inner{padding:0 0 26px}
-.acc-body-inner p{color:var(--muted);font-size:13px;line-height:1.75;max-width:520px;margin-bottom:12px}
-.acc-body-inner ul{list-style:none;margin-bottom:14px}
-.acc-body-inner li{font-size:12.5px;color:var(--muted);padding-left:14px;position:relative;margin-bottom:5px}
-.acc-body-inner li:before{content:"—";position:absolute;left:0;color:var(--muted)}
-.acc-body-inner button{background:var(--text);color:#0a0a09;padding:13px 22px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
-.avis-carousel{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px}
-.avis-carousel::-webkit-scrollbar{height:4px}
-.avis-card{flex:none;width:260px;scroll-snap-align:start;border:1px solid var(--line);padding:22px;background:var(--panel)}
-.avis-card .top{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:10px}
-.avis-card .stars{color:var(--gold)}
-.avis-card p{font-family:var(--font-display);font-style:italic;font-weight:460;font-size:18px;line-height:1.35;color:var(--text)}
-.avis-card .tag{margin-top:12px;font-size:10px;letter-spacing:.14em;font-weight:600;text-transform:uppercase;color:var(--muted)}
-.avis-add{margin-top:24px;display:inline-flex;align-items:center;gap:12px;padding:15px 28px;border:1px solid var(--line);background:transparent;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;color:var(--text);transition:border-color .35s ease,background .35s ease}
-.avis-add:hover{border-color:var(--gold-soft);background:rgba(255,255,255,.03)}
-.avis-add-icon{width:20px;height:20px;border-radius:50%;border:1px solid var(--gold-soft);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:13px;color:var(--gold);flex-shrink:0}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:9998;display:none;align-items:center;justify-content:center;padding:20px}
-.modal-overlay.open{display:flex}
-.modal-box{background:var(--panel);border:1px solid var(--line);padding:30px 26px;max-width:400px;width:100%}
-.modal-box h3{font-family:var(--font-display);font-weight:460;font-style:normal;font-size:23px;margin-bottom:18px;color:var(--text)}
-.modal-box label{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
-.modal-box input,.modal-box textarea{width:100%;background:transparent;border:1px solid #2c2a26;color:var(--text);padding:11px 12px;font-size:13px;outline:none;font-family:var(--font-sans)}
-.modal-box textarea{min-height:70px;resize:vertical}
-.modal-rate span{font-size:22px;color:#2c2a26;cursor:pointer}
-.modal-rate span.on{color:var(--gold)}
-.modal-actions{display:flex;gap:10px;margin-top:20px}
-.modal-actions button{flex:1;padding:12px;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
-.modal-cancel{border:1px solid #2c2a26}
-.modal-submit{background:var(--text);color:#0a0a09;font-weight:600}
-.wizard{border-top:1px solid var(--line);padding:74px 5%}
-.wz-steps{display:flex;position:relative;margin-bottom:54px;padding-top:6px}
-.wz-steps:before{content:"";position:absolute;top:10px;left:16px;right:16px;height:1px;background:var(--line);z-index:0}
-.wz-step-tab{flex:1;position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:color .3s ease}
-.wz-step-tab:before{content:"";width:9px;height:9px;border-radius:50%;background:var(--bg);border:1px solid var(--line);transition:background .35s ease,border-color .35s ease,transform .35s ease}
-.wz-step-tab:hover{color:var(--text)}
-.wz-step-tab.active{color:var(--text)}
-.wz-step-tab.active:before{background:var(--text);border-color:var(--text);transform:scale(1.15)}
-.wz-step-tab.done{color:var(--text)}
-.wz-step-tab.done:before{background:var(--gold);border-color:var(--gold)}
-.wz-panel{display:none;max-width:560px}
-.wz-panel.active{display:block}
-.wz-panel label{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:16px 0 7px}
-.wz-panel label:first-child{margin-top:0}
-.wz-panel input,.wz-panel select,.wz-panel textarea{width:100%;background:transparent;border:1px solid #2c2a26;color:var(--text);padding:13px 14px;font-size:13.5px;outline:none;font-family:var(--font-sans)}
-.wz-panel input:focus,.wz-panel select:focus{border-color:rgba(255,255,255,.35)}
-.wz-panel option{color:#111}
-.pick-list{display:flex;flex-direction:column;gap:1px}
-.pick-row{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border:1px solid var(--line);cursor:pointer}
-.pick-row.sel{border-color:var(--text);background:rgba(255,255,255,.03)}
-.pick-row .pk-name{font-family:var(--font-display);font-weight:540;font-style:normal;font-size:17px;color:var(--text)}
-.pick-row .pk-price{font-size:13px;color:var(--muted);font-variant-numeric:oldstyle-nums}
-.check-row{display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:8px}
-.check-row input{width:16px;height:16px;accent-color:var(--gold)}
-.dep-yesno{display:flex;gap:10px}
-.dep-yn{flex:1;padding:14px 12px;background:transparent;border:1px solid var(--line);color:var(--text);font-family:var(--font-sans);font-size:.82rem;font-weight:500;letter-spacing:.02em;cursor:pointer;transition:all .2s;text-align:center}
-.dep-yn.on{background:var(--text);border-color:var(--text);color:#0a0a09;font-weight:700}
-.dep-detail{display:none;margin-top:18px;border-top:1px solid var(--line);padding-top:18px}
-.dep-detail.show{display:block}
-.dep-note{font-size:.75rem;color:var(--muted);margin-bottom:14px;font-style:italic;font-family:var(--font-display)}
-.dep-people-label{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
-.dep-people-select{width:100%;background:transparent;border:1px solid #2c2a26;color:var(--text);padding:13px 14px;font-size:13.5px;outline:none;font-family:var(--font-sans);margin-bottom:4px}
-.dep-people-select option{color:#111}
-.dep-search{display:flex;gap:8px;margin-bottom:12px}
-.dep-city-input{flex:1;padding:13px 14px;background:transparent;border:1px solid #2c2a26;color:var(--text);font-family:var(--font-sans);font-size:.9rem;outline:none;transition:border-color .2s;min-width:0}
-.dep-city-input:focus{border-color:rgba(255,255,255,.35)}
-.dep-calc-btn{padding:13px 18px;background:var(--text);border:none;color:#0a0a09;font-family:var(--font-sans);font-size:.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:opacity .2s;white-space:nowrap;flex-shrink:0}
-.dep-calc-btn:hover{opacity:.85}
-.dep-calc-btn:disabled{opacity:.5;cursor:not-allowed}
-.dep-result{margin-bottom:14px;padding:12px 16px;font-size:.85rem;line-height:1.6;display:none}
-.dep-result.ok{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.18);color:var(--text);display:block}
-.dep-result.warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:#FCD34D;display:block}
-.dep-result.err{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#FCA5A5;display:block}
-.dep-result.loading{background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--muted);display:block;font-style:italic}
-.dep-opts{display:flex;flex-direction:column;gap:8px}
-.dep-opt{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border:1px solid var(--line);transition:all .2s}
-.dep-opt-name{font-size:.88rem;color:var(--muted)}
-.dep-opt-price{font-family:var(--font-display);font-style:italic;font-size:1rem;color:var(--text);font-variant-numeric:oldstyle-nums}
-.dep-opt.auto-on{background:rgba(255,255,255,.05);border-color:var(--text)}
-.dep-opt.auto-on .dep-opt-name{color:var(--text)}
-.dep-addr-block{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
-.dep-addr-block input{width:100%;background:transparent;border:1px solid #2c2a26;color:var(--text);padding:12px 13px;font-size:13.5px;outline:none;font-family:var(--font-sans);margin-bottom:8px}
-.dep-warning{font-size:.72rem;color:var(--muted);font-style:italic;line-height:1.6;font-family:var(--font-display)}
-.wz-nav{display:flex;gap:12px;margin-top:30px}
-.wz-btn{padding:14px 24px;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--text)}
-.wz-btn.primary{background:var(--text);color:#0a0a09;border-color:var(--text);font-weight:700}
-.wz-summary{border:1px solid var(--line);padding:20px;margin-bottom:20px}
-.wz-summary-row{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);padding:5px 0}
-.wz-summary-row b{color:var(--text);font-weight:600}
-.upload-box{display:block;border:1px dashed rgba(255,255,255,.22);padding:14px;text-align:center;font-size:12px;color:var(--muted);margin-top:16px}
-.upload-box input{margin-top:8px;color:var(--text);font-size:11px}
-.btn-pay{display:block;text-align:center;background:var(--text);color:#0a0a09;padding:16px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;margin-top:18px}
-.slot-note{font-size:10.5px;color:var(--muted);margin-top:10px}
-footer{border-top:1px solid var(--line);padding:40px 5%;display:flex;flex-wrap:wrap;justify-content:space-between;gap:14px;color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
-@media(min-width:900px){
-  nav{display:flex;gap:26px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-  nav a:hover{color:var(--text)}
-  .menu-btn{display:none}
-  .triptych{grid-template-columns:repeat(2,1fr)}
-  .swatch-block{min-height:200px}
-  .section{padding:100px 5%}
-  .wizard{padding:100px 5%}
+function validateStep2(){
+  const date = document.getElementById('date_rdv').value;
+  const heure = document.getElementById('heure_rdv').value;
+  if(!date){ alert("Merci de choisir une date avant de continuer."); return false; }
+  if(current.type === 'slot' && !heure){ alert("Merci de choisir un créneau horaire avant de continuer."); return false; }
+  if(current.type === 'slot' && depState.actif && !document.getElementById('dep-address').value.trim()){
+    alert("Merci de renseigner votre adresse complète pour le déplacement.");
+    return false;
+  }
+  return true;
+}
+function validateStep3(){
+  const nom = document.getElementById('nom').value.trim();
+  const email = document.getElementById('email').value.trim();
+  if(!nom){ alert("Merci de renseigner votre nom avant de continuer."); return false; }
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ alert("Merci de renseigner un e-mail valide avant de continuer."); return false; }
+  return true;
+}
+const STEP_VALIDATORS = { 2:validateStep1, 3:validateStep2, 4:validateStep3 };
+
+function nextStep(n){
+  const validate = STEP_VALIDATORS[n];
+  if(validate && !validate()) return;
+  maxStepUnlocked = Math.max(maxStepUnlocked, n);
+  goStep(n);
+}
+
+function goStep(n){
+  if(n > maxStepUnlocked) return;
+  document.querySelectorAll('.wz-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('wz-'+n).classList.add('active');
+  document.querySelectorAll('.wz-step-tab').forEach(t=>{
+    const s = +t.dataset.step;
+    t.classList.toggle('active', s===n);
+    t.classList.toggle('done', s<n);
+  });
+  if(n===2){
+    document.getElementById('deplacement-box').style.display = current.type==='slot' ? 'block' : 'none';
+    refreshHeureAvailability();
+  }
+  if(n===4) renderSummary();
+}
+document.querySelectorAll('.wz-step-tab').forEach(t=>t.addEventListener('click', ()=>{
+  const n = +t.dataset.step;
+  if(n <= maxStepUnlocked){
+    goStep(n);
+  } else {
+    alert("Merci de compléter l'étape en cours avant de passer à la suivante.");
+  }
+}));
+
+function deplacementMontant(){
+  if(!current || current.type !== 'slot') return 0;
+  return depState.montant || 0;
+}
+function prixNumerique(str){ const n = parseFloat(String(str).replace('€','').replace(',','.')); return isNaN(n)?0:n; }
+
+/* ---------- Déplacement : géolocalisation (Nominatim + Haversine) ---------- */
+const ORIGIN = { lat: 48.8566, lon: 2.3522 }; // placeholder — remplacer par la vraie adresse
+const IDF_DEPTS = ['75','77','78','91','92','93','94','95'];
+let depState = { actif:false, montant:0, label:'', personnes:'3' };
+
+function setDep(val){
+  depState.actif = (val === 'oui');
+  document.getElementById('dep-non-btn').classList.toggle('on', val==='non');
+  document.getElementById('dep-oui-btn').classList.toggle('on', val==='oui');
+  const detail = document.getElementById('dep-detail');
+  if(val === 'oui'){
+    detail.classList.add('show');
+  } else {
+    detail.classList.remove('show');
+    depState.montant = 0; depState.label='';
+    resetDepResult();
+  }
+}
+const depPeopleSel = document.getElementById('dep-people');
+if(depPeopleSel){
+  depPeopleSel.addEventListener('change', ()=>{ depState.personnes = depPeopleSel.value; });
+}
+function resetDepResult(){
+  const r = document.getElementById('dep-result');
+  r.className = 'dep-result'; r.textContent = '';
+  document.querySelectorAll('.dep-opt').forEach(o=>o.classList.remove('auto-on'));
+}
+function haversine(lat1, lon1, lat2, lon2){
+  const R = 6371;
+  const toRad = x => x * Math.PI / 180;
+  const dLat = toRad(lat2-lat1), dLon = toRad(lon2-lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+  return Math.round(R * 2 * Math.asin(Math.sqrt(a)));
+}
+async function calcDist(){
+  const city = document.getElementById('dep-city').value.trim();
+  if(!city) return;
+  const btn = document.querySelector('.dep-calc-btn');
+  const res = document.getElementById('dep-result');
+  btn.disabled = true;
+  resetDepResult();
+  res.className = 'dep-result loading';
+  res.textContent = '📍 Recherche en cours…';
+
+  try{
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city+', France')}&format=json&limit=3&addressdetails=1&countrycodes=fr`;
+    const resp = await fetch(url, { headers:{ 'Accept-Language':'fr' } });
+    const data = await resp.json();
+
+    if(!data.length){
+      res.className = 'dep-result err';
+      res.textContent = '❌ Ville introuvable. Essayez avec un code postal ou un nom plus précis.';
+      btn.disabled = false; return;
+    }
+    const place = data[0];
+    const postcode = place.address?.postcode || '';
+    const dept = postcode.slice(0,2);
+    const nom = place.display_name.split(',').slice(0,2).join(',').trim();
+    const lat = parseFloat(place.lat), lon = parseFloat(place.lon);
+    const km = haversine(ORIGIN.lat, ORIGIN.lon, lat, lon);
+
+    if(!IDF_DEPTS.includes(dept)){
+      res.className = 'dep-result err';
+      res.textContent = `❌ ${nom} semble être hors Île-de-France. Le déplacement n'est disponible qu'en IDF.`;
+      depState.montant = 0; btn.disabled = false; return;
+    }
+
+    let tier, price, tierId, montant;
+    if(km <= 30){ tier='jusqu\'à 30 km'; price='+60€'; tierId='dep-tier-1'; montant=60; }
+    else        { tier='au-delà de 30 km'; price='+80€'; tierId='dep-tier-2'; montant=80; }
+
+    document.querySelectorAll('.dep-opt').forEach(o=>o.classList.remove('auto-on'));
+    document.getElementById(tierId).classList.add('auto-on');
+    depState.montant = montant;
+    depState.label = `${nom} · ${km} km · ${tier} (${price})`;
+
+    res.className = 'dep-result ok';
+    res.innerHTML = `📍 <strong>${nom}</strong> · <strong>${km} km</strong><br>→ Supplément déplacement : <strong>${price}</strong>`;
+  } catch(e){
+    res.className = 'dep-result warn';
+    res.textContent = '⚠️ Calcul automatique indisponible — sélectionnez votre tranche manuellement ci-dessous.';
+    document.querySelectorAll('.dep-opt').forEach((o,i)=>{
+      o.onclick = ()=>{
+        document.querySelectorAll('.dep-opt').forEach(x=>x.classList.remove('auto-on'));
+        o.classList.add('auto-on');
+        const montants = [60,80], labels = ['jusqu\'à 30 km','au-delà de 30 km'];
+        depState.montant = montants[i];
+        depState.label = (city||'Ville non calculée')+' · '+labels[i];
+      };
+    });
+  }
+  btn.disabled = false;
+}
+
+const heureSel = document.getElementById('heure_rdv');
+async function refreshHeureAvailability(){
+  heureSel.innerHTML = '<option value="">Choisir un créneau</option>';
+  for(let m = OUVERTURE; m <= FERMETURE; m += 60){
+    const h = Math.floor(m/60);
+    const opt = document.createElement('option');
+    opt.value = `${h}:00`; opt.textContent = `${h}:00`;
+    heureSel.appendChild(opt);
+  }
+  const date = document.getElementById('date_rdv').value;
+  if(!date) return;
+  try{
+    const { data, error } = await supabase
+      .from('creneaux_bloques')
+      .select('heure_debut, heure_fin')
+      .eq('date', date);
+    if(error) throw error;
+    (data||[]).forEach(bloc=>{
+      Array.from(heureSel.options).forEach(opt=>{
+        if(!opt.value) return;
+        if(opt.value >= bloc.heure_debut && opt.value < bloc.heure_fin){
+          opt.disabled = true;
+          opt.textContent = opt.value + ' (indisponible)';
+        }
+      });
+    });
+  }catch(e){
+    console.warn('Créneaux bloqués : lecture Supabase indisponible.', e);
+  }
+}
+document.getElementById('date_rdv').addEventListener('change', refreshHeureAvailability);
+
+function renderSummary(){
+  const d = document.getElementById('date_rdv').value ? new Date(document.getElementById('date_rdv').value).toLocaleDateString('fr-FR') : '—';
+  const h = document.getElementById('heure_rdv').value || '—';
+  const depl = deplacementMontant();
+  const total = prixNumerique(current.price) + depl;
+  let deplRow = '';
+  if(current.type === 'slot' && depState.actif){
+    const nb = depState.personnes === '7+' ? '7 personnes ou plus' : `${depState.personnes} personnes`;
+    deplRow = `<div class="wz-summary-row"><span>Déplacement</span><b>${nb} · ${depState.label || 'à calculer'}</b></div>`;
+  }
+  document.getElementById('wz-summary').innerHTML = `
+    <div class="wz-summary-row"><span>Prestation</span><b>${current.name}</b></div>
+    <div class="wz-summary-row"><span>Prix</span><b>${current.price}${depl ? ' + '+depl+'€ = '+total+'€' : ''}</b></div>
+    <div class="wz-summary-row"><span>Date</span><b>${d}</b></div>
+    <div class="wz-summary-row"><span>Heure</span><b>${h}</b></div>
+    ${deplRow}
+    <div class="wz-summary-row"><span>Acompte à régler</span><b>${current.dep}€</b></div>
+  `;
+  const btn = document.getElementById('paypal-btn');
+  btn.href = `https://paypal.me/${PAYPAL_HANDLE}/${current.dep}`;
+  btn.textContent = `Payer l'acompte de ${current.dep}€ via PayPal`;
+}
+
+/* ---------- demande mariée (Supabase) ---------- */
+async function submitMariee(){
+  const statusEl = document.getElementById('mariee-status');
+  const nom = document.getElementById('mar-nom').value.trim();
+  const email = document.getElementById('mar-email').value.trim();
+  const tel = document.getElementById('mar-tel').value.trim();
+  const date = document.getElementById('mar-date').value;
+  const formule = document.getElementById('mar-formule').value;
+  const msg = document.getElementById('mar-msg').value.trim();
+
+  if(!nom || !email || !date || !formule){
+    statusEl.textContent = "Merci de renseigner au minimum : nom, e-mail, date du mariage et formule.";
+    statusEl.style.color = "#d98787";
+    return;
+  }
+
+  try{
+    const { error } = await supabase.from('demandes_mariee').insert({
+      nom, email, telephone:tel, date_mariage:date, formule, message: msg
+    });
+    if(error) throw error;
+    statusEl.textContent = "Demande envoyée ✓ — je vous recontacte par Instagram, généralement sous 48h.";
+    statusEl.style.color = "#9bcf9b";
+    document.querySelectorAll('.mariee-form input,.mariee-form select,.mariee-form textarea,.mariee-form button').forEach(el=>el.disabled=true);
+  }catch(e){
+    console.error('Demande mariée : envoi Supabase impossible.', e);
+    statusEl.textContent = "Une erreur est survenue, merci de réessayer ou de me contacter directement.";
+    statusEl.style.color = "#d98787";
+  }
+}
+
+/* ---------- réservation (Supabase + Storage pour la capture PayPal) ---------- */
+async function submitReservation(){
+  const statusEl = document.getElementById('submit-status');
+  const nom = document.getElementById('nom').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const tel = document.getElementById('telephone').value.trim();
+  const insta = document.getElementById('insta').value.trim();
+  const date = document.getElementById('date_rdv').value;
+  const heure = document.getElementById('heure_rdv').value;
+  const captureFile = document.getElementById('capture').files[0];
+
+  if(!nom || !email || !date){ statusEl.textContent = "Merci de compléter au minimum : date, nom et e-mail (étapes 2 et 3)."; statusEl.style.color = "#d98787"; return; }
+  if(current.type === 'slot' && !heure){ statusEl.textContent = "Merci de choisir un créneau horaire (étape 2)."; statusEl.style.color = "#d98787"; return; }
+  if(current.type === 'slot' && depState.actif && !document.getElementById('dep-address').value.trim()){ statusEl.textContent = "Merci de renseigner votre adresse complète pour le déplacement (étape 2)."; statusEl.style.color = "#d98787"; return; }
+  if(!captureFile){ statusEl.textContent = "Merci de joindre la capture de votre paiement PayPal."; statusEl.style.color = "#d98787"; return; }
+
+  const depl = deplacementMontant();
+  const total = prixNumerique(current.price) + depl;
+
+  statusEl.textContent = "Envoi en cours…";
+  statusEl.style.color = "";
+
+  try{
+    const cheminFichier = `${Date.now()}_${captureFile.name}`;
+    const { error: uploadError } = await supabase.storage
+      .from('captures')
+      .upload(cheminFichier, captureFile);
+    if(uploadError) throw uploadError;
+    const { data: urlData } = supabase.storage.from('captures').getPublicUrl(cheminFichier);
+    const captureUrl = urlData.publicUrl;
+
+    const { error: insertError } = await supabase.from('reservations').insert({
+      type: current.type,
+      prestation: current.name,
+      prix: current.price,
+      total: total + '€',
+      acompte: current.dep + '€',
+      date_rdv: date,
+      heure_rdv: heure,
+      deplacement: (current.type==='slot' && depState.actif) ? (depState.label || 'oui') : 'non',
+      deplacement_personnes: (current.type==='slot' && depState.actif) ? depState.personnes : '',
+      adresse: (current.type==='slot' && depState.actif) ? document.getElementById('dep-address').value.trim() : '',
+      nom, email, telephone: tel, instagram: insta,
+      capture_paiement: captureUrl,
+      status: 'en attente'
+    });
+    if(insertError) throw insertError;
+
+    statusEl.textContent = "Demande envoyée ✓ — vous recevrez une réponse dès qu'elle sera traitée.";
+    statusEl.style.color = "#9bcf9b";
+  }catch(e){
+    console.error('Réservation : envoi Supabase impossible.', e);
+    statusEl.textContent = "Une erreur est survenue lors de l'envoi, merci de réessayer.";
+    statusEl.style.color = "#d98787";
+  }
 }
