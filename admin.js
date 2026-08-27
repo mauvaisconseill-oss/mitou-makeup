@@ -1,23 +1,15 @@
 /* ============================================================
-   ADMIN — Mitou Makeup
-   Reprend EXACTEMENT les mêmes identifiants Supabase que script.js.
-   ⚠️ Pense à mettre les vraies valeurs ici aussi (les deux fichiers
-   doivent pointer vers le même projet Supabase).
-
-   ⚠️ CONNEXION : ce fichier utilise maintenant Supabase Auth
-   (email + mot de passe), au lieu d'un mot de passe en dur.
-   Il faut créer l'utilisateur admin dans Supabase > Authentication
-   > Users > Add user (voir la note en bas de ce fichier).
+   ADMIN — Mitou Makeup (version simple, mot de passe en dur)
    ============================================================ */
 const SUPABASE_URL = "https://cayadmbypnfukskotrma.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNheWFkbWJ5cG5mdWtza290cm1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0OTcxODIsImV4cCI6MjEwMzA3MzE4Mn0._j5jQ1kXYOz5NhJLBsRlGXI8HEBRMQCo3ka3QrjYUe0"; 
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNheWFkbWJ5cG5mdWtza290cm1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0OTcxODIsImV4cCI6MjEwMzA3MzE4Mn0._j5jQ1kXYOz5NhJLBsRlGXI8HEBRMQCo3ka3QrjYUe0";
 
-let supabase = null;
+const ADMIN_PASSWORD = "change-moi-123"; // ⚠️ mets ton propre mot de passe ici
+
+let supabaseClient = null;
 try{
   if(window.supabase && typeof window.supabase.createClient === 'function'){
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  } else {
-    console.warn('Supabase JS non chargé.');
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   }
 }catch(e){
   console.warn('Supabase : initialisation impossible.', e);
@@ -26,40 +18,21 @@ try{
 /* ---------- connexion ---------- */
 const loginScreen = document.getElementById('admin-login');
 const dashScreen  = document.getElementById('admin-dash');
-const emailInput  = document.getElementById('admin-email'); // ⚠️ à ajouter dans admin.html, voir note plus bas
 const passInput   = document.getElementById('admin-pass');
 const loginBtn    = document.getElementById('admin-login-btn');
 const loginErr    = document.getElementById('admin-login-err');
 
-async function tryLogin(){
-  if(!supabase){
-    loginErr.textContent = "Supabase non configuré.";
-    return;
+function tryLogin(){
+  if(passInput.value === ADMIN_PASSWORD){
+    loginErr.textContent = "";
+    showDash();
+  } else {
+    loginErr.textContent = "Mot de passe incorrect.";
   }
-  loginErr.textContent = "";
-  loginBtn.disabled = true;
-  loginBtn.textContent = "Connexion…";
-
-  const email = emailInput ? emailInput.value.trim() : '';
-  const password = passInput.value;
-
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-  loginBtn.disabled = false;
-  loginBtn.textContent = "Entrer →";
-
-  if(error){
-    loginErr.textContent = "Email ou mot de passe incorrect.";
-    return;
-  }
-  showDash();
 }
 
 loginBtn.addEventListener('click', tryLogin);
 passInput.addEventListener('keydown', e=>{ if(e.key==='Enter') tryLogin(); });
-if(emailInput){
-  emailInput.addEventListener('keydown', e=>{ if(e.key==='Enter') tryLogin(); });
-}
 
 function showDash(){
   loginScreen.style.display = 'none';
@@ -67,21 +40,10 @@ function showDash(){
   loadData();
 }
 
-document.getElementById('logout-btn').addEventListener('click', async ()=>{
-  if(supabase) await supabase.auth.signOut();
+document.getElementById('logout-btn').addEventListener('click', ()=>{
   location.reload();
 });
 document.getElementById('refresh-btn').addEventListener('click', loadData);
-
-/* Vérifie s'il y a déjà une session active au chargement de la page */
-async function checkSession(){
-  if(!supabase) return;
-  const { data } = await supabase.auth.getSession();
-  if(data.session){
-    showDash();
-  }
-}
-checkSession();
 
 /* ---------- filtres ---------- */
 let activeFilter = 'all';
@@ -98,17 +60,16 @@ document.querySelectorAll('.admin-chip').forEach(chip=>{
 let ALL_CARDS = [];
 
 async function loadData(){
-  if(!supabase){
+  if(!supabaseClient){
     document.getElementById('admin-stats').innerHTML =
-      '<p style="color:#d98787;font-size:12px">Supabase non configuré — vérifie SUPABASE_URL et SUPABASE_ANON_KEY dans admin.js.</p>';
+      '<p style="color:#d98787;font-size:12px">Supabase non configuré.</p>';
     return;
   }
 
   const cards = [];
 
-  // 1) Réservations (invitée + formation)
   try{
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('reservations')
       .select('*')
       .order('created_at', { ascending:false });
@@ -134,10 +95,8 @@ async function loadData(){
     console.warn('Lecture "reservations" impossible.', e);
   }
 
-  // 2) Demandes mariée (colonne "status" à ajouter dans Supabase si absente —
-  //    voir la note en bas de ce fichier)
   try{
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('demandes_mariee')
       .select('*')
       .order('created_at', { ascending:false });
@@ -159,7 +118,7 @@ async function loadData(){
       });
     });
   }catch(e){
-    console.warn('Lecture "demandes_mariee" impossible (colonne status manquante ?).', e);
+    console.warn('Lecture "demandes_mariee" impossible.', e);
   }
 
   ALL_CARDS = cards;
@@ -243,7 +202,7 @@ function renderColumn(bodyId, countId, list){
 
 async function updateStatus(card, newStatus){
   try{
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from(card.table)
       .update({ status:newStatus })
       .eq('id', card.id);
@@ -252,29 +211,6 @@ async function updateStatus(card, newStatus){
     renderBoard();
   }catch(e){
     console.error('Mise à jour du statut impossible.', e);
-    alert("Impossible de mettre à jour cette demande. Si le tableau est \"demandes_mariee\", vérifie qu'il a bien une colonne \"status\" dans Supabase (voir la note dans admin.js).");
+    alert("Impossible de mettre à jour cette demande.");
   }
 }
-
-/* ============================================================
-   NOTES
-
-   1) Colonne "status" manquante sur demandes_mariee — pour que
-   la colonne "Mariée" fonctionne comme les deux autres (accepter /
-   refuser), lance ceci dans Supabase > SQL Editor :
-
-   alter table demandes_mariee
-     add column status text not null default 'en attente';
-
-   Rien à faire côté "reservations", la colonne status existe déjà.
-
-   2) Créer ton compte admin (Supabase Auth) — dans Supabase, va
-   dans Authentication > Users > Add user > Create new user.
-   Renseigne un email et un mot de passe, coche "Auto Confirm User",
-   puis clique "Create user". C'est cet email/mot de passe qu'il
-   faudra taper dans l'écran de connexion de admin.html.
-
-   3) Il faut ajouter un champ email dans admin.html — voir le
-   fichier admin.html fourni séparément, qui contient déjà le
-   champ <input id="admin-email">.
-   ============================================================ */
