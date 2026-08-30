@@ -168,21 +168,22 @@ function fmtDate(d){
 function renderBoard(){
   const filtered = activeFilter === 'all' ? ALL_CARDS : ALL_CARDS.filter(c=>c.type===activeFilter);
 
-  const groups = { 'en attente':[], 'acceptée':[], 'refusée':[] };
+  // "refusée" n'existe plus dans le flux, mais si d'anciennes lignes
+  // en base ont encore ce statut, on les range avec "en attente" pour
+  // ne rien perdre de vue.
+  const groups = { 'en attente':[], 'acceptée':[] };
   filtered.forEach(c=>{
-    const s = groups[c.status] ? c.status : 'en attente';
+    const s = c.status === 'acceptée' ? 'acceptée' : 'en attente';
     groups[s].push(c);
   });
 
   renderColumn('col-attente', 'count-attente', groups['en attente']);
   renderColumn('col-acceptee', 'count-acceptee', groups['acceptée']);
-  renderColumn('col-refusee', 'count-refusee', groups['refusée']);
 
   document.getElementById('admin-stats').innerHTML = `
     <div class="admin-stat"><span class="admin-stat-num">${ALL_CARDS.length}</span><span class="admin-stat-label">Total</span></div>
     <div class="admin-stat"><span class="admin-stat-num">${groups['en attente'].length}</span><span class="admin-stat-label">En attente</span></div>
     <div class="admin-stat"><span class="admin-stat-num">${groups['acceptée'].length}</span><span class="admin-stat-label">Acceptées</span></div>
-    <div class="admin-stat"><span class="admin-stat-num">${groups['refusée'].length}</span><span class="admin-stat-label">Refusées</span></div>
   `;
 }
 
@@ -221,13 +222,14 @@ function renderColumn(bodyId, countId, list){
     }
 
     const actions = node.querySelector('.admin-card-actions');
-    if(card.status === 'en attente'){
-      actions.innerHTML = `<button class="accept">Accepter</button><button class="refuse">Refuser</button>`;
-      actions.querySelector('.accept').addEventListener('click', ()=>updateStatus(card, 'acceptée'));
-      actions.querySelector('.refuse').addEventListener('click', ()=>updateStatus(card, 'refusée'));
-    } else {
-      actions.innerHTML = `<button class="revert">Remettre en attente</button>`;
+    if(card.status === 'acceptée'){
+      actions.innerHTML = `<button class="revert">Remettre en attente</button><button class="delete">Supprimer</button>`;
       actions.querySelector('.revert').addEventListener('click', ()=>updateStatus(card, 'en attente'));
+      actions.querySelector('.delete').addEventListener('click', ()=>deleteCard(card));
+    } else {
+      actions.innerHTML = `<button class="accept">Accepter</button><button class="delete">Supprimer</button>`;
+      actions.querySelector('.accept').addEventListener('click', ()=>updateStatus(card, 'acceptée'));
+      actions.querySelector('.delete').addEventListener('click', ()=>deleteCard(card));
     }
 
     body.appendChild(node);
@@ -248,7 +250,7 @@ async function envoyerEmailAcceptation(card){
   await emailjs.send(EMAILJS_SERVICE_ID, templateId, params);
 }
 
-/* ---------- mise à jour statut + libération créneau si refus ---------- */
+/* ---------- mise à jour statut ---------- */
 async function updateStatus(card, newStatus){
   try{
     const { error } = await supabaseClient
@@ -257,14 +259,6 @@ async function updateStatus(card, newStatus){
       .eq('id', card.id);
     if(error) throw error;
     card.status = newStatus;
-
-    // Si on refuse une réservation "invitée", libérer le créneau bloqué
-    if(newStatus === 'refusée' && card.table === 'reservations'){
-      await supabaseClient
-        .from('creneaux_bloques')
-        .delete()
-        .eq('reservation_id', card.id);
-    }
 
     // Si on accepte, envoyer l'e-mail de confirmation
     if(newStatus === 'acceptée' && card.table === 'reservations'){
@@ -280,6 +274,34 @@ async function updateStatus(card, newStatus){
   }catch(e){
     console.error('Mise à jour du statut impossible.', e);
     alert("Impossible de mettre à jour cette demande.");
+  }
+}
+
+/* ---------- suppression d'une demande + libération du créneau ---------- */
+async function deleteCard(card){
+  const label = card.type === 'mariee' ? 'cette demande mariée' : 'cette demande';
+  if(!confirm(`Supprimer définitivement ${label} ? Cette action est irréversible.`)) return;
+
+  try{
+    // Libérer le créneau bloqué si c'était une réservation "invitée"
+    if(card.table === 'reservations'){
+      await supabaseClient
+        .from('creneaux_bloques')
+        .delete()
+        .eq('reservation_id', card.id);
+    }
+
+    const { error } = await supabaseClient
+      .from(card.table)
+      .delete()
+      .eq('id', card.id);
+    if(error) throw error;
+
+    ALL_CARDS = ALL_CARDS.filter(c => !(c.table === card.table && c.id === card.id));
+    renderBoard();
+  }catch(e){
+    console.error('Suppression impossible.', e);
+    alert("Impossible de supprimer cette demande.");
   }
 }
 
