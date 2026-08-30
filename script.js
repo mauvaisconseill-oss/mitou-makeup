@@ -520,6 +520,28 @@ async function submitReservation(){
       status: 'en attente'
     });
     if(insertError) throw insertError;
+        // Bloquer ce créneau pour que personne d'autre ne le réserve
+    if(current.type === 'slot' && heure){
+      const { data: nouvelleResa } = await supabase
+        .from('reservations')
+        .select('id')
+        .eq('email', email)
+        .eq('date_rdv', date)
+        .eq('heure_rdv', heure)
+        .order('created_at', { ascending:false })
+        .limit(1)
+        .single();
+
+      const [hDeb] = heure.split(':').map(Number);
+      const heureFin = `${hDeb + 1}:00`;
+
+      await supabase.from('creneaux_bloques').insert({
+        date: date,
+        heure_debut: heure,
+        heure_fin: heureFin,
+        reservation_id: nouvelleResa ? nouvelleResa.id : null
+      });
+    }
 
     statusEl.textContent = "Demande envoyée ✓ — vous recevrez une réponse dès qu'elle sera traitée.";
     statusEl.style.color = "#9bcf9b";
