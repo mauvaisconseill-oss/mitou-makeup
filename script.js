@@ -432,6 +432,14 @@ async function refreshHeureAvailability(){
   const date = document.getElementById('date_rdv').value;
   if(!date) return;
 
+  // Les formations ont un horaire fixe (10h-17h, journée complète) —
+  // elles ne suivent pas le planning des rendez-vous "invitée".
+  if(current && current.type === 'formation'){
+    heureSel.innerHTML = '<option value="10:00">10:00 — 17:00 (journée complète)</option>';
+    heureSel.value = '10:00';
+    return;
+  }
+
   const horaires = await getHorairesDuJour(date);
 
   if(!horaires || !horaires.ouvert){
