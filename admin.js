@@ -1,10 +1,14 @@
 /* ============================================================
-   ADMIN — Mitou Makeup (version simple, mot de passe en dur)
+   ADMIN — Mitou Makeup (vraie authentification Supabase + planning)
    ============================================================ */
 const SUPABASE_URL = "https://cayadmbypnfukskotrma.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNheWFkbWJ5cG5mdWtza290cm1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0OTcxODIsImV4cCI6MjEwMzA3MzE4Mn0._j5jQ1kXYOz5NhJLBsRlGXI8HEBRMQCo3ka3QrjYUe0";
 
-const ADMIN_PASSWORD = "makeup00Mitou@"; // ⚠️ mets ton propre mot de passe ici
+/* ★★★ EmailJS — mets tes vrais identifiants ici ★★★ */
+const EMAILJS_PUBLIC_KEY = "bCBYuvyqokoudzupP";
+const EMAILJS_SERVICE_ID = "service_sa3nlab";
+const EMAILJS_TEMPLATE_ACCEPT_SLOT = "template_zesivlq";      // "Invitée acceptée"
+const EMAILJS_TEMPLATE_ACCEPT_FORMATION = "template_c3yqwma"; // "Formation acceptée"
 
 let supabaseClient = null;
 try{
@@ -14,21 +18,34 @@ try{
 }catch(e){
   console.warn('Supabase : initialisation impossible.', e);
 }
+try{
+  if(window.emailjs) emailjs.init(EMAILJS_PUBLIC_KEY);
+}catch(e){
+  console.warn('EmailJS : initialisation impossible.', e);
+}
 
-/* ---------- connexion ---------- */
+/* ---------- connexion (vraie auth Supabase) ---------- */
 const loginScreen = document.getElementById('admin-login');
 const dashScreen  = document.getElementById('admin-dash');
+const emailInput  = document.getElementById('admin-email');
 const passInput   = document.getElementById('admin-pass');
 const loginBtn    = document.getElementById('admin-login-btn');
 const loginErr    = document.getElementById('admin-login-err');
 
-function tryLogin(){
-  if(passInput.value === ADMIN_PASSWORD){
-    loginErr.textContent = "";
-    showDash();
-  } else {
-    loginErr.textContent = "Mot de passe incorrect.";
+async function tryLogin(){
+  loginErr.textContent = "";
+  const email = emailInput.value.trim();
+  const password = passInput.value;
+  if(!email || !password){
+    loginErr.textContent = "Merci de remplir l'e-mail et le mot de passe.";
+    return;
   }
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if(error){
+    loginErr.textContent = "Identifiants incorrects.";
+    return;
+  }
+  showDash();
 }
 
 loginBtn.addEventListener('click', tryLogin);
@@ -40,12 +57,29 @@ function showDash(){
   loadData();
 }
 
-document.getElementById('logout-btn').addEventListener('click', ()=>{
+document.getElementById('logout-btn').addEventListener('click', async ()=>{
+  await supabaseClient.auth.signOut();
   location.reload();
 });
 document.getElementById('refresh-btn').addEventListener('click', loadData);
 
-/* ---------- filtres ---------- */
+// Reste connectée si une session existe déjà (pas besoin de se reconnecter à chaque visite)
+supabaseClient.auth.getSession().then(({data})=>{
+  if(data.session) showDash();
+});
+
+/* ---------- navigation entre onglets principaux ---------- */
+document.getElementById('tab-reservations').addEventListener('click', ()=>switchMainView('reservations'));
+document.getElementById('tab-planning').addEventListener('click', ()=>switchMainView('planning'));
+
+function switchMainView(view){
+  document.querySelectorAll('.main-tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
+  document.getElementById('reservations-view').style.display = view==='reservations' ? 'block' : 'none';
+  document.getElementById('planning-view').style.display = view==='planning' ? 'block' : 'none';
+  if(view === 'planning') loadPlanning();
+}
+
+/* ---------- filtres réservations ---------- */
 let activeFilter = 'all';
 document.querySelectorAll('.admin-chip').forEach(chip=>{
   chip.addEventListener('click', ()=>{
@@ -56,23 +90,15 @@ document.querySelectorAll('.admin-chip').forEach(chip=>{
   });
 });
 
-/* ---------- chargement des données ---------- */
+/* ---------- chargement des données réservations ---------- */
 let ALL_CARDS = [];
 
-async function updateStatus(card, newStatus){
-  try{
-    const { error } = await supabaseClient
-      .from(card.table)
-      .update({ status:newStatus })
-      .eq('id', card.id);
-    if(error) throw error;
-    card.status = newStatus;
-    renderBoard();
-  }catch(e){
-    console.error('Mise à jour du statut impossible.', e);
-    alert("Impossible de mettre à jour cette demande.");
+async function loadData(){
+  if(!supabaseClient){
+    document.getElementById('admin-stats').innerHTML =
+      '<p style="color:#d98787;font-size:12px">Supabase non configuré.</p>';
+    return;
   }
-}
 
   const cards = [];
 
@@ -133,7 +159,7 @@ async function updateStatus(card, newStatus){
   renderBoard();
 }
 
-/* ---------- rendu ---------- */
+/* ---------- rendu réservations ---------- */
 function fmtDate(d){
   if(!d) return '—';
   try{ return new Date(d).toLocaleDateString('fr-FR'); }catch(e){ return d; }
@@ -208,6 +234,21 @@ function renderColumn(bodyId, countId, list){
   });
 }
 
+/* ---------- envoi email à l'acceptation ---------- */
+async function envoyerEmailAcceptation(card){
+  if(!window.emailjs) return;
+  const templateId = card.type === 'formation' ? EMAILJS_TEMPLATE_ACCEPT_FORMATION : EMAILJS_TEMPLATE_ACCEPT_SLOT;
+  const params = {
+    to_name: card.name || '',
+    to_email: card.email || '',
+    date: fmtDate(card.date),
+    heure: card.heure || '',
+    lieu: card.deplacement ? (card.adresse || 'à votre domicile') : 'chez Mitou Makeup'
+  };
+  await emailjs.send(EMAILJS_SERVICE_ID, templateId, params);
+}
+
+/* ---------- mise à jour statut + libération créneau si refus ---------- */
 async function updateStatus(card, newStatus){
   try{
     const { error } = await supabaseClient
@@ -216,9 +257,258 @@ async function updateStatus(card, newStatus){
       .eq('id', card.id);
     if(error) throw error;
     card.status = newStatus;
+
+    // Si on refuse une réservation "invitée", libérer le créneau bloqué
+    if(newStatus === 'refusée' && card.table === 'reservations'){
+      await supabaseClient
+        .from('creneaux_bloques')
+        .delete()
+        .eq('reservation_id', card.id);
+    }
+
+    // Si on accepte, envoyer l'e-mail de confirmation
+    if(newStatus === 'acceptée' && card.table === 'reservations'){
+      try{
+        await envoyerEmailAcceptation(card);
+      }catch(e){
+        console.error('Email non envoyé :', e);
+        alert("Statut mis à jour, mais l'e-mail n'a pas pu être envoyé — vérifie les identifiants EmailJS.");
+      }
+    }
+
     renderBoard();
   }catch(e){
     console.error('Mise à jour du statut impossible.', e);
     alert("Impossible de mettre à jour cette demande.");
   }
+}
+
+/* ============================================================
+   PLANNING
+   ============================================================ */
+const JOURS_SEMAINE = [
+  { key: 'lundi',    label: 'Lundi' },
+  { key: 'mardi',    label: 'Mardi' },
+  { key: 'mercredi', label: 'Mercredi' },
+  { key: 'jeudi',    label: 'Jeudi' },
+  { key: 'vendredi', label: 'Vendredi' },
+  { key: 'samedi',   label: 'Samedi' },
+  { key: 'dimanche', label: 'Dimanche' }
+];
+
+let horairesActuels = {};
+
+async function loadPlanning(){
+  await loadHoraires();
+  await loadSemaine();
+}
+
+async function loadHoraires(){
+  const { data, error } = await supabaseClient.from('planning_config').select('*').eq('id', 1).maybeSingle();
+  if(error || !data){
+    alert("Impossible de charger les horaires. Vérifie que la table planning_config existe (script SQL).");
+    return;
+  }
+  horairesActuels = data.jours || {};
+  renderJoursList();
+}
+
+function renderJoursList(){
+  const el = document.getElementById('jours-list');
+  el.innerHTML = JOURS_SEMAINE.map(j => {
+    const cfg = horairesActuels[j.key] || { ouvert:false };
+    const debut = cfg.debut || '10:00';
+    const fin = cfg.fin || '19:00';
+    return `
+    <div class="jour-row" data-jour="${j.key}">
+      <div class="jour-nom">${j.label}</div>
+      <label class="jour-toggle">
+        <input type="checkbox" class="jour-ouvert-check" ${cfg.ouvert ? 'checked' : ''}>
+        Ouvert
+      </label>
+      <div class="jour-heures" id="heures-${j.key}" style="${cfg.ouvert ? '' : 'display:none'}">
+        <input type="time" id="debut-${j.key}" value="${debut}">
+        <span>à</span>
+        <input type="time" id="fin-${j.key}" value="${fin}">
+      </div>
+      <span class="jour-ferme-label" id="ferme-${j.key}" style="${cfg.ouvert ? 'display:none' : ''}">Fermé</span>
+    </div>`;
+  }).join('');
+
+  // écouteurs (pas d'attributs inline onclick, tout en JS externe)
+  JOURS_SEMAINE.forEach(j=>{
+    const check = document.querySelector(`#jours-list [data-jour="${j.key}"] .jour-ouvert-check`);
+    check.addEventListener('change', ()=>{
+      document.getElementById('heures-'+j.key).style.display = check.checked ? 'flex' : 'none';
+      document.getElementById('ferme-'+j.key).style.display = check.checked ? 'none' : 'inline';
+    });
+  });
+}
+
+document.getElementById('save-horaires-btn').addEventListener('click', saveHoraires);
+
+async function saveHoraires(){
+  const nouveauxJours = {};
+  JOURS_SEMAINE.forEach(j => {
+    const ouvert = document.querySelector(`#jours-list [data-jour="${j.key}"] .jour-ouvert-check`).checked;
+    if(ouvert){
+      nouveauxJours[j.key] = {
+        ouvert: true,
+        debut: document.getElementById('debut-'+j.key).value || '10:00',
+        fin: document.getElementById('fin-'+j.key).value || '19:00'
+      };
+    } else {
+      nouveauxJours[j.key] = { ouvert: false };
+    }
+  });
+
+  const { error } = await supabaseClient.from('planning_config')
+    .update({ jours: nouveauxJours, updated_at: new Date().toISOString() })
+    .eq('id', 1);
+
+  if(error){ alert("Erreur lors de l'enregistrement des horaires."); return; }
+  horairesActuels = nouveauxJours;
+  alert("Horaires enregistrés ✓");
+  await loadSemaine();
+}
+
+/* ---------- vue par semaine ---------- */
+let semaineAffichee = getLundiDeLaSemaine(new Date());
+
+function getLundiDeLaSemaine(d){
+  const date = new Date(d);
+  const jour = date.getDay();
+  const diff = jour === 0 ? -6 : 1 - jour;
+  date.setDate(date.getDate() + diff);
+  date.setHours(0,0,0,0);
+  return date;
+}
+function toISODate(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function fmtDateCourt(d){
+  return d.toLocaleDateString('fr-FR', { day:'2-digit', month:'short' });
+}
+
+document.getElementById('semaine-prec-btn').addEventListener('click', ()=>{
+  semaineAffichee.setDate(semaineAffichee.getDate() - 7);
+  loadSemaine();
+});
+document.getElementById('semaine-suiv-btn').addEventListener('click', ()=>{
+  semaineAffichee.setDate(semaineAffichee.getDate() + 7);
+  loadSemaine();
+});
+document.getElementById('semaine-today-btn').addEventListener('click', ()=>{
+  semaineAffichee = getLundiDeLaSemaine(new Date());
+  loadSemaine();
+});
+
+async function loadSemaine(){
+  const debutSemaine = new Date(semaineAffichee);
+  const finSemaine = new Date(semaineAffichee);
+  finSemaine.setDate(finSemaine.getDate() + 6);
+
+  document.getElementById('semaine-sublabel').textContent =
+    `${fmtDateCourt(debutSemaine)} — ${fmtDateCourt(finSemaine)}`;
+  document.getElementById('semaine-label').firstChild.textContent =
+    `Semaine du ${debutSemaine.getDate()} au ${finSemaine.getDate()}`;
+
+  const debutISO = toISODate(debutSemaine);
+  const finISO = toISODate(finSemaine);
+
+  const { data, error } = await supabaseClient.from('planning_overrides')
+    .select('*')
+    .gte('date', debutISO)
+    .lte('date', finISO);
+
+  const overrides = {};
+  if(!error && data){
+    data.forEach(o => { overrides[o.date] = o; });
+  }
+
+  renderSemaineJours(debutSemaine, overrides);
+}
+
+function renderSemaineJours(debutSemaine, overrides){
+  const el = document.getElementById('semaine-jours-list');
+  el.innerHTML = JOURS_SEMAINE.map((j, i) => {
+    const dateObj = new Date(debutSemaine);
+    dateObj.setDate(dateObj.getDate() + i);
+    const dateISO = toISODate(dateObj);
+    const override = overrides[dateISO];
+
+    const defaut = horairesActuels[j.key] || { ouvert:false };
+    const estOverride = !!override;
+
+    const ouvert = estOverride ? override.ouvert : defaut.ouvert;
+    const debut = estOverride ? (override.debut || '10:00') : (defaut.debut || '10:00');
+    const fin = estOverride ? (override.fin || '19:00') : (defaut.fin || '19:00');
+
+    return `
+    <div class="jour-row ${estOverride ? 'override' : ''}" data-sem-jour="${j.key}" data-date="${dateISO}">
+      <div class="jour-date">${fmtDateCourt(dateObj)}</div>
+      <div class="jour-nom">${j.label}${estOverride ? '<span class="override-badge">MODIFIÉ</span>' : ''}</div>
+      <label class="jour-toggle">
+        <input type="checkbox" class="sem-ouvert-check">
+        Ouvert
+      </label>
+      <div class="jour-heures" id="sem-heures-${dateISO}" style="${ouvert ? '' : 'display:none'}">
+        <input type="time" id="sem-debut-${dateISO}" value="${debut}">
+        <span>à</span>
+        <input type="time" id="sem-fin-${dateISO}" value="${fin}">
+      </div>
+      <span class="jour-ferme-label" id="sem-ferme-${dateISO}" style="${ouvert ? 'display:none' : ''}">Fermé</span>
+      ${estOverride ? `<button class="btn-reset-jour" data-reset="${dateISO}">Revenir à l'horaire habituel</button>` : ''}
+    </div>`;
+  }).join('');
+
+  // état initial des cases (fait après l'injection HTML pour éviter les soucis de "checked" en string)
+  JOURS_SEMAINE.forEach((j,i)=>{
+    const dateObj = new Date(debutSemaine);
+    dateObj.setDate(dateObj.getDate() + i);
+    const dateISO = toISODate(dateObj);
+    const override = overrides[dateISO];
+    const defaut = horairesActuels[j.key] || { ouvert:false };
+    const ouvert = override ? override.ouvert : defaut.ouvert;
+    const check = document.querySelector(`[data-date="${dateISO}"] .sem-ouvert-check`);
+    check.checked = ouvert;
+    check.addEventListener('change', ()=>onSemaineJourChange(dateISO));
+    document.getElementById('sem-debut-'+dateISO).addEventListener('change', ()=>onSemaineJourChange(dateISO));
+    document.getElementById('sem-fin-'+dateISO).addEventListener('change', ()=>onSemaineJourChange(dateISO));
+  });
+
+  el.querySelectorAll('[data-reset]').forEach(btn=>{
+    btn.addEventListener('click', ()=>resetJourSemaine(btn.dataset.reset));
+  });
+}
+
+function onSemaineJourChange(dateISO){
+  const check = document.querySelector(`[data-date="${dateISO}"] .sem-ouvert-check`);
+  const ouvert = check.checked;
+  document.getElementById('sem-heures-'+dateISO).style.display = ouvert ? 'flex' : 'none';
+  document.getElementById('sem-ferme-'+dateISO).style.display = ouvert ? 'none' : 'inline';
+  sauvegarderOverride(dateISO);
+}
+
+async function sauvegarderOverride(dateISO){
+  const check = document.querySelector(`[data-date="${dateISO}"] .sem-ouvert-check`);
+  const ouvert = check.checked;
+  const debut = ouvert ? (document.getElementById('sem-debut-'+dateISO).value || '10:00') : null;
+  const fin = ouvert ? (document.getElementById('sem-fin-'+dateISO).value || '19:00') : null;
+
+  const { error } = await supabaseClient.from('planning_overrides')
+    .upsert({ date: dateISO, ouvert, debut, fin, updated_at: new Date().toISOString() }, { onConflict: 'date' });
+
+  if(error){ alert("Erreur lors de l'enregistrement de ce jour."); return; }
+  await loadSemaine();
+}
+
+async function resetJourSemaine(dateISO){
+  if(!confirm("Revenir à l'horaire habituel pour ce jour ?")) return;
+  const { error } = await supabaseClient.from('planning_overrides').delete().eq('date', dateISO);
+  if(error){ alert("Erreur lors de la suppression."); return; }
+  await loadSemaine();
 }
