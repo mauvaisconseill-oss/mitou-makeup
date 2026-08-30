@@ -573,10 +573,10 @@ async function submitReservation(){
   try{
     const cheminFichier = `${Date.now()}_${captureFile.name}`;
     const { error: uploadError } = await supabaseClient.storage
-      .from('captures')
+      .from('capture')
       .upload(cheminFichier, captureFile);
     if(uploadError) throw uploadError;
-    const { data: urlData } = supabaseClient.storage.from('captures').getPublicUrl(cheminFichier);
+    const { data: urlData } = supabaseClient.storage.from('capture').getPublicUrl(cheminFichier);
     const captureUrl = urlData.publicUrl;
 
     const { data: inserted, error: insertError } = await supabaseClient.from('reservations').insert({
