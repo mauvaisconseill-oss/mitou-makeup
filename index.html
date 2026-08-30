@@ -256,12 +256,15 @@
         <p class="dep-note">Disponible à partir de 3 personnes · Île-de-France uniquement</p>
         <label class="dep-people-label">Combien de personnes à maquiller ?</label>
         <select id="dep-people" class="dep-people-select">
-          <option value="3">3 personnes</option>
-          <option value="4">4 personnes</option>
-          <option value="5">5 personnes</option>
-          <option value="6">6 personnes</option>
-          <option value="7+">7 personnes ou plus</option>
-        </select>
+  <option value="3">3 personnes</option>
+  <option value="4">4 personnes</option>
+  <option value="5">5 personnes</option>
+  <option value="6">6 personnes</option>
+  <option value="7+">7 personnes ou plus</option>
+</select>
+<div id="dep-people-precise-box" style="display:none;margin-top:10px">
+  <input type="text" id="dep-people-precise" placeholder="Précisez le nombre exact, ex : 10 personnes">
+</div>
         <p class="slot-note" style="margin:14px 0 10px">Saisissez votre ville pour calculer le supplément déplacement</p>
         <div class="dep-search">
           <input type="text" class="dep-city-input" id="dep-city" placeholder="Ex : Vincennes, Montreuil, Paris 11e...">
