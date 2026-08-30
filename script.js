@@ -1,5 +1,7 @@
 const PAYPAL_HANDLE = "Mitoumakeup";
 const IG_HANDLE = "mitou_makeup";
+let isSubmittingReservation = false;
+let isSubmittingMariee = false;
 
 const SUPABASE_URL = "https://cayadmbypnfukskotrma.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNheWFkbWJ5cG5mdWtza290cm1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0OTcxODIsImV4cCI6MjEwMzA3MzE4Mn0._j5jQ1kXYOz5NhJLBsRlGXI8HEBRMQCo3ka3QrjYUe0";
@@ -443,9 +445,24 @@ async function refreshHeureAvailability(){
   const date = document.getElementById('date_rdv').value;
   if(!date) return;
 
-  // Les formations ont un horaire fixe (10h-17h, journée complète) —
-  // elles ne suivent pas le planning des rendez-vous "invitée".
+  let blockedSlots = [];
+  try{
+    const { data, error } = await supabaseClient
+      .from('creneaux_bloques')
+      .select('heure_debut, heure_fin')
+      .eq('date', date);
+    if(error) throw error;
+    blockedSlots = data || [];
+  }catch(e){
+    console.warn('Créneaux bloqués : lecture Supabase indisponible.', e);
+  }
+
+  // Les formations prennent toute la journée et doivent bloquer le jour entier.
   if(current && current.type === 'formation'){
+    if(blockedSlots.length){
+      heureSel.innerHTML = '<option value="">Ce jour est déjà réservé — choisissez une autre date</option>';
+      return;
+    }
     heureSel.innerHTML = '<option value="10:00">10:00 — 17:00 (journée complète)</option>';
     heureSel.value = '10:00';
     return;
@@ -467,24 +484,15 @@ async function refreshHeureAvailability(){
     heureSel.appendChild(opt);
   }
 
-  try{
-    const { data, error } = await supabaseClient
-      .from('creneaux_bloques')
-      .select('heure_debut, heure_fin')
-      .eq('date', date);
-    if(error) throw error;
-    (data||[]).forEach(bloc=>{
-      Array.from(heureSel.options).forEach(opt=>{
-        if(!opt.value) return;
-        if(opt.value >= bloc.heure_debut && opt.value < bloc.heure_fin){
-          opt.disabled = true;
-          opt.textContent = opt.value + ' — déjà pris';
-        }
-      });
+  blockedSlots.forEach(bloc=>{
+    Array.from(heureSel.options).forEach(opt=>{
+      if(!opt.value) return;
+      if(opt.value >= bloc.heure_debut && opt.value < bloc.heure_fin){
+        opt.disabled = true;
+        opt.textContent = opt.value + ' — déjà pris';
+      }
     });
-  }catch(e){
-    console.warn('Créneaux bloqués : lecture Supabase indisponible.', e);
-  }
+  });
 }
 document.getElementById('date_rdv').addEventListener('change', refreshHeureAvailability);
 
@@ -519,6 +527,7 @@ function renderSummary(){
 
 /* ---------- demande mariée (Supabase) ---------- */
 async function submitMariee(){
+  if(isSubmittingMariee) return;
   const statusEl = document.getElementById('mariee-status');
   const nom = document.getElementById('mar-nom').value.trim();
   const email = document.getElementById('mar-email').value.trim();
@@ -533,6 +542,11 @@ async function submitMariee(){
     return;
   }
 
+  isSubmittingMariee = true;
+  statusEl.textContent = "Envoi en cours…";
+  statusEl.style.color = "";
+  document.querySelectorAll('.mariee-form input,.mariee-form select,.mariee-form textarea,.mariee-form button').forEach(el=>el.disabled=true);
+
   try{
     const { error } = await supabaseClient.from('demandes_mariee').insert({
       nom, email, telephone:tel, date_mariage:date, formule, message: msg
@@ -540,16 +554,46 @@ async function submitMariee(){
     if(error) throw error;
     statusEl.textContent = "Demande envoyée ✓ — je vous recontacte par Instagram, généralement sous 48h.";
     statusEl.style.color = "#9bcf9b";
-    document.querySelectorAll('.mariee-form input,.mariee-form select,.mariee-form textarea,.mariee-form button').forEach(el=>el.disabled=true);
   }catch(e){
     console.error('Demande mariée : envoi Supabase impossible.', e);
     statusEl.textContent = "Une erreur est survenue, merci de réessayer ou de me contacter directement.";
     statusEl.style.color = "#d98787";
+    document.querySelectorAll('.mariee-form input,.mariee-form select,.mariee-form textarea,.mariee-form button').forEach(el=>el.disabled=false);
+    isSubmittingMariee = false;
+  }
+}
+
+async function hasBookingConflict(date, heure, type){
+  if(!supabaseClient || !date) return false;
+  try{
+    const { data, error } = await supabaseClient
+      .from('creneaux_bloques')
+      .select('heure_debut, heure_fin')
+      .eq('date', date);
+    if(error) throw error;
+
+    if(type === 'formation') return Boolean((data || []).length);
+    if(!heure) return false;
+    const [h, m] = heure.split(':').map(Number);
+    const currentMinutes = h * 60 + m;
+
+    return (data || []).some(bloc => {
+      if(!bloc.heure_debut || !bloc.heure_fin) return false;
+      const [startH, startM] = bloc.heure_debut.split(':').map(Number);
+      const [endH, endM] = bloc.heure_fin.split(':').map(Number);
+      const startMinutes = startH * 60 + startM;
+      const endMinutes = endH * 60 + endM;
+      return currentMinutes >= startMinutes && currentMinutes < endMinutes;
+    });
+  }catch(e){
+    console.warn('Contrôle de disponibilité : vérification impossible.', e);
+    return false;
   }
 }
 
 /* ---------- réservation (Supabase + Storage pour la capture PayPal) ---------- */
 async function submitReservation(){
+  if(isSubmittingReservation) return;
   const statusEl = document.getElementById('submit-status');
   const nom = document.getElementById('nom').value.trim();
   const email = document.getElementById('email').value.trim();
@@ -564,15 +608,22 @@ async function submitReservation(){
   if(current.type === 'slot' && depState.actif && !document.getElementById('dep-address').value.trim()){ statusEl.textContent = "Merci de renseigner votre adresse complète pour le déplacement (étape 2)."; statusEl.style.color = "#d98787"; return; }
   if(!captureFile){ statusEl.textContent = "Merci de joindre la capture de votre paiement PayPal."; statusEl.style.color = "#d98787"; return; }
 
+  const hasConflict = await hasBookingConflict(date, heure, current.type);
+  if(hasConflict){
+    statusEl.textContent = current.type === 'formation'
+      ? "Ce jour est déjà réservé — merci de choisir une autre date." : "Ce créneau est déjà pris — merci d’en choisir un autre.";
+    statusEl.style.color = "#d98787";
+    return;
+  }
+
   const depl = deplacementMontant();
   const total = prixNumerique(current.price) + depl;
 
+  isSubmittingReservation = true;
   statusEl.textContent = "Envoi en cours…";
   statusEl.style.color = "";
 
   try{
-    // Supabase Storage refuse les espaces, accents et apostrophes dans les
-    // noms de fichiers ("Invalid key") — on nettoie le nom avant l'upload.
     const extension = (captureFile.name.match(/\.[^.]+$/) || [''])[0];
     const cheminFichier = `${Date.now()}${extension}`;
     const { error: uploadError } = await supabaseClient.storage
@@ -589,7 +640,7 @@ async function submitReservation(){
       total: total + '€',
       acompte: current.dep + '€',
       date_rdv: date,
-      heure_rdv: heure,
+      heure_rdv: current.type === 'formation' ? '10:00' : heure,
       deplacement: (current.type==='slot' && depState.actif) ? (depState.label || 'oui') : 'non',
       deplacement_personnes: (current.type==='slot' && depState.actif)
         ? (depState.personnes === '7+'
@@ -612,14 +663,28 @@ async function submitReservation(){
         heure_fin: heureFin,
         reservation_id: inserted ? inserted.id : null
       });
+    } else if(current.type === 'formation'){
+      await supabaseClient.from('creneaux_bloques').insert({
+        date: date,
+        heure_debut: '00:00',
+        heure_fin: '23:59',
+        reservation_id: inserted ? inserted.id : null
+      });
     }
 
     statusEl.textContent = "Demande envoyée ✓ — vous recevrez une réponse dès qu'elle sera traitée.";
     statusEl.style.color = "#9bcf9b";
+    document.querySelectorAll('#nom,#email,#telephone,#insta,#date_rdv,#heure_rdv,#capture,#dep-address,#dep-city,#dep-people,#dep-people-precise,button').forEach(el => {
+      if (el && el.tagName !== 'BUTTON') el.disabled = true;
+      if (el && el.tagName === 'BUTTON' && el.onclick && el.onclick.toString().includes('submitReservation')) el.disabled = true;
+    });
+    const submitBtn = document.querySelector('#reservation-submit-btn');
+    if(submitBtn) submitBtn.disabled = true;
   }catch(e){
     console.error('Réservation : envoi Supabase impossible.', e);
     const detail = (e && (e.message || e.error_description || e.details)) ? ` (${e.message || e.error_description || e.details})` : '';
     statusEl.textContent = "Une erreur est survenue lors de l'envoi, merci de réessayer." + detail;
     statusEl.style.color = "#d98787";
+    isSubmittingReservation = false;
   }
 }

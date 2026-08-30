@@ -211,7 +211,7 @@
       <label>Message (facultatif)</label>
       <textarea id="mar-msg" placeholder="Nombre de personnes, lieu, style souhaité..."></textarea>
       <div style="margin-top:20px;display:flex;flex-wrap:wrap;gap:16px;align-items:center">
-        <button class="btn-live" style="display:inline-block" onclick="submitMariee()">Envoyer ma demande →</button>
+        <button id="mariee-submit-btn" class="btn-live" style="display:inline-block" onclick="submitMariee()">Envoyer ma demande →</button>
         <p class="slot-note" id="mariee-status">Réponse par Instagram, généralement sous 48h.</p>
       </div>
     </div>
@@ -305,7 +305,7 @@
     <a href="#" id="paypal-btn" target="_blank" class="btn-pay">Payer l'acompte via PayPal</a>
     <div class="wz-nav">
       <button class="wz-btn" onclick="goStep(3)">← Retour</button>
-      <button class="wz-btn primary" onclick="submitReservation()">Envoyer ma demande</button>
+      <button id="reservation-submit-btn" class="wz-btn primary" onclick="submitReservation()">Envoyer ma demande</button>
     </div>
     <p class="slot-note" id="submit-status">Votre demande est transmise directement — réponse par e-mail ou Instagram dès traitement.</p>
   </div>
