@@ -80,8 +80,8 @@ document.getElementById('logout-btn').addEventListener('click', async ()=>{
 
 async function refreshAllData(){
   await loadData();
-  if(document.getElementById('planning-view').style.display !== 'none') await loadPlanning();
-  if(document.getElementById('calendrier-view').style.display !== 'none') await loadCalendrier();
+  await loadPlanning();
+  await loadCalendrier();
 }
 
 document.getElementById('refresh-btn').addEventListener('click', refreshAllData);
