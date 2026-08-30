@@ -87,12 +87,15 @@ supabaseClient.auth.getSession().then(({data})=>{
 /* ---------- navigation entre onglets principaux ---------- */
 document.getElementById('tab-reservations').addEventListener('click', ()=>switchMainView('reservations'));
 document.getElementById('tab-planning').addEventListener('click', ()=>switchMainView('planning'));
+document.getElementById('tab-calendrier').addEventListener('click', ()=>switchMainView('calendrier'));
 
 function switchMainView(view){
   document.querySelectorAll('.main-tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
   document.getElementById('reservations-view').style.display = view==='reservations' ? 'block' : 'none';
   document.getElementById('planning-view').style.display = view==='planning' ? 'block' : 'none';
+  document.getElementById('calendrier-view').style.display = view==='calendrier' ? 'block' : 'none';
   if(view === 'planning') loadPlanning();
+  if(view === 'calendrier') loadCalendrier();
 }
 
 /* ---------- filtres réservations ---------- */
@@ -551,3 +554,184 @@ async function resetJourSemaine(dateISO){
   if(error){ alert("Erreur lors de la suppression."); return; }
   showToast("Horaire habituel rétabli");
   await loadSemaine();}
+
+
+/* ============================================================
+   CALENDRIER — vue mois de tous les rendez-vous acceptés
+   (invitées, formations, mariées) pour repérer les journées chargées
+   ============================================================ */
+const MOIS_NOMS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+let moisAffiche = new Date();
+moisAffiche.setDate(1);
+let CAL_EVENTS = []; // liste plate d'événements acceptés, tous types confondus
+
+document.getElementById('mois-prec-btn').addEventListener('click', ()=>{
+  moisAffiche.setMonth(moisAffiche.getMonth() - 1);
+  renderCalendrier();
+});
+document.getElementById('mois-suiv-btn').addEventListener('click', ()=>{
+  moisAffiche.setMonth(moisAffiche.getMonth() + 1);
+  renderCalendrier();
+});
+document.getElementById('mois-today-btn').addEventListener('click', ()=>{
+  moisAffiche = new Date();
+  moisAffiche.setDate(1);
+  renderCalendrier();
+});
+
+async function loadCalendrier(){
+  const events = [];
+
+  try{
+    const { data, error } = await supabaseClient
+      .from('reservations')
+      .select('*')
+      .eq('status', 'acceptée');
+    if(error) throw error;
+    (data||[]).forEach(r=>{
+      if(!r.date_rdv) return;
+      events.push({
+        date: r.date_rdv,
+        type: r.type === 'formation' ? 'formation' : 'slot',
+        typeLabel: r.type === 'formation' ? 'Formation' : 'Invitée',
+        nom: r.nom || 'Sans nom',
+        service: r.prestation || '',
+        heure: r.heure_rdv || '',
+        email: r.email || '',
+        tel: r.telephone || ''
+      });
+    });
+  }catch(e){
+    console.warn('Calendrier : lecture "reservations" impossible.', e);
+  }
+
+  try{
+    const { data, error } = await supabaseClient
+      .from('demandes_mariee')
+      .select('*')
+      .eq('status', 'acceptée');
+    if(error) throw error;
+    (data||[]).forEach(r=>{
+      if(!r.date_mariage) return;
+      events.push({
+        date: r.date_mariage,
+        type: 'mariee',
+        typeLabel: 'Mariée',
+        nom: r.nom || 'Sans nom',
+        service: r.formule || '',
+        heure: '',
+        email: r.email || '',
+        tel: r.telephone || ''
+      });
+    });
+  }catch(e){
+    console.warn('Calendrier : lecture "demandes_mariee" impossible.', e);
+  }
+
+  CAL_EVENTS = events;
+  renderCalendrier();
+}
+
+function renderCalendrier(){
+  const y = moisAffiche.getFullYear();
+  const m = moisAffiche.getMonth();
+  document.getElementById('mois-label').textContent = `${MOIS_NOMS[m]} ${y}`;
+
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+
+  ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].forEach(j=>{
+    const head = document.createElement('div');
+    head.className = 'cal-day-head';
+    head.textContent = j;
+    grid.appendChild(head);
+  });
+
+  const premierJour = new Date(y, m, 1);
+  const dernierJour = new Date(y, m + 1, 0);
+  const nbJours = dernierJour.getDate();
+
+  // décalage lundi=0 ... dimanche=6
+  let decalage = premierJour.getDay() - 1;
+  if(decalage < 0) decalage = 6;
+
+  const todayISO = toISODateCal(new Date());
+
+  for(let i = 0; i < decalage; i++){
+    const empty = document.createElement('div');
+    empty.className = 'cal-cell empty';
+    grid.appendChild(empty);
+  }
+
+  for(let d = 1; d <= nbJours; d++){
+    const dateObj = new Date(y, m, d);
+    const dateISO = toISODateCal(dateObj);
+    const evsJour = CAL_EVENTS.filter(e => e.date === dateISO);
+
+    const cell = document.createElement('div');
+    cell.className = 'cal-cell' + (dateISO === todayISO ? ' today' : '');
+
+    const num = document.createElement('div');
+    num.className = 'cal-daynum';
+    num.textContent = d;
+    cell.appendChild(num);
+
+    if(evsJour.length){
+      const dots = document.createElement('div');
+      dots.className = 'cal-dots';
+      evsJour.slice(0, 3).forEach(ev=>{
+        const dot = document.createElement('div');
+        dot.className = 'cal-dot ' + ev.type;
+        dot.textContent = ev.nom;
+        dots.appendChild(dot);
+      });
+      if(evsJour.length > 3){
+        const more = document.createElement('div');
+        more.className = 'cal-more';
+        more.textContent = `+${evsJour.length - 3} autre(s)`;
+        dots.appendChild(more);
+      }
+      cell.appendChild(dots);
+      cell.addEventListener('click', ()=>showCalDetail(dateISO, evsJour));
+    }
+
+    grid.appendChild(cell);
+  }
+}
+
+function toISODateCal(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function showCalDetail(dateISO, evsJour){
+  const card = document.getElementById('cal-detail-card');
+  const title = document.getElementById('cal-detail-title');
+  const body = document.getElementById('cal-detail-body');
+
+  const dateAffiche = new Date(dateISO + 'T00:00:00').toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  title.textContent = dateAffiche;
+
+  const alerte = evsJour.length > 1
+    ? `<p style="font-size:12px;color:var(--gold);margin-bottom:16px">⚠ ${evsJour.length} rendez-vous ce jour-là — vérifiez que ça reste gérable.</p>`
+    : '';
+
+  body.innerHTML = alerte + evsJour.map(ev => `
+    <div class="cal-detail-item">
+      <div>
+        <div class="cal-detail-name">${ev.nom}</div>
+        <div class="cal-detail-meta">
+          ${ev.service}${ev.heure ? ' · ' + ev.heure : ''}
+          ${ev.email ? '<br>' + ev.email : ''}
+          ${ev.tel ? ' · ' + ev.tel : ''}
+        </div>
+      </div>
+      <span class="cal-detail-type ${ev.type}">${ev.typeLabel}</span>
+    </div>
+  `).join('');
+
+  card.style.display = 'block';
+  card.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
