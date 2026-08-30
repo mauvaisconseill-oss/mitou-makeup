@@ -4,10 +4,10 @@ const IG_HANDLE = "mitou_makeup";
 const SUPABASE_URL = "https://cayadmbypnfukskotrma.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNheWFkbWJ5cG5mdWtza290cm1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0OTcxODIsImV4cCI6MjEwMzA3MzE4Mn0._j5jQ1kXYOz5NhJLBsRlGXI8HEBRMQCo3ka3QrjYUe0";
 
-let supabase = null;
+let supabaseClient = null;
 try{
   if(window.supabase && typeof window.supabase.createClient === 'function'){
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   } else {
     console.warn('Supabase JS non chargé — vérifie le <script> CDN dans index.html.');
   }
@@ -152,7 +152,7 @@ function renderAvis(){
 }
 async function chargerAvis(){
   try{
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('avis')
       .select('nom, service, note, commentaire')
       .order('created_at', { ascending:false });
@@ -183,7 +183,7 @@ async function postAvis(){
 
   const nouvelAvis = { nom, service, note:noteChoisie, commentaire };
   try{
-    const { error } = await supabase.from('avis').insert(nouvelAvis);
+    const { error } = await supabaseClient.from('avis').insert(nouvelAvis);
     if(error) throw error;
   }catch(e){
     console.warn('Avis : insertion Supabase indisponible, ajout local seulement.', e);
@@ -396,7 +396,7 @@ let PLANNING_CACHE = null;
 async function getPlanningConfig(){
   if(PLANNING_CACHE) return PLANNING_CACHE;
   try{
-    const { data, error } = await supabase.from('planning_config').select('*').eq('id', 1).maybeSingle();
+    const { data, error } = await supabaseClient.from('planning_config').select('*').eq('id', 1).maybeSingle();
     if(error) throw error;
     PLANNING_CACHE = data ? data.jours : {};
   }catch(e){
@@ -413,7 +413,7 @@ async function getHorairesDuJour(dateISO){
   const defaut = jours[jourKey] || { ouvert:false };
 
   try{
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('planning_overrides')
       .select('*')
       .eq('date', dateISO)
@@ -449,7 +449,7 @@ async function refreshHeureAvailability(){
   }
 
   try{
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('creneaux_bloques')
       .select('heure_debut, heure_fin')
       .eq('date', date);
@@ -509,7 +509,7 @@ async function submitMariee(){
   }
 
   try{
-    const { error } = await supabase.from('demandes_mariee').insert({
+    const { error } = await supabaseClient.from('demandes_mariee').insert({
       nom, email, telephone:tel, date_mariage:date, formule, message: msg
     });
     if(error) throw error;
@@ -547,14 +547,14 @@ async function submitReservation(){
 
   try{
     const cheminFichier = `${Date.now()}_${captureFile.name}`;
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabaseClient.storage
       .from('captures')
       .upload(cheminFichier, captureFile);
     if(uploadError) throw uploadError;
-    const { data: urlData } = supabase.storage.from('captures').getPublicUrl(cheminFichier);
+    const { data: urlData } = supabaseClient.storage.from('captures').getPublicUrl(cheminFichier);
     const captureUrl = urlData.publicUrl;
 
-    const { data: inserted, error: insertError } = await supabase.from('reservations').insert({
+    const { data: inserted, error: insertError } = await supabaseClient.from('reservations').insert({
       type: current.type,
       prestation: current.name,
       prix: current.price,
@@ -574,7 +574,7 @@ async function submitReservation(){
     if(current.type === 'slot' && heure){
       const [hDeb] = heure.split(':').map(Number);
       const heureFin = `${hDeb + 1}:00`;
-      await supabase.from('creneaux_bloques').insert({
+      await supabaseClient.from('creneaux_bloques').insert({
         date: date,
         heure_debut: heure,
         heure_fin: heureFin,
