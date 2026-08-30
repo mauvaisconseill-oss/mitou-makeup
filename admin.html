@@ -11,39 +11,109 @@
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="admin.css">
 <style>
-  /* ---------- Planning (ajouts) ---------- */
-  .main-tabs{display:flex;gap:10px;margin:0 0 28px;border-bottom:1px solid var(--admin-line,#e6ded2);flex-wrap:wrap}
-  .main-tab-btn{padding:12px 4px;margin-right:18px;border:0;background:transparent;font-family:"Switzer",sans-serif;font-size:13px;letter-spacing:.05em;cursor:pointer;color:#888;border-bottom:2px solid transparent;font-weight:500}
-  .main-tab-btn.active{color:#1a1a1a;border-bottom-color:#1a1a1a}
+  /* ============================================================
+     PLANNING — reprend les variables du thème sombre/doré
+     (--bg, --panel, --line, --text, --muted, --gold, --gold-soft,
+     --gold-dim, --font-display, --font-sans) déjà définies dans
+     style.css / admin.css. Rien n'est redéfini en dur.
+     ============================================================ */
 
-  .planning-card{background:#fff;border:1px solid #e6ded2;border-radius:10px;padding:24px 22px;margin-bottom:22px}
-  .planning-title{font-family:"Fraunces",serif;font-size:19px;margin-bottom:4px}
-  .planning-sub{font-size:12.5px;color:#777;margin-bottom:18px}
+  /* ---------- switch Réservations / Planning, encadré ---------- */
+  .main-tabs-wrap{padding:24px 5% 0}
+  .main-tabs{
+    display:inline-flex;gap:2px;padding:4px;
+    border:1px solid var(--line);background:var(--panel);
+  }
+  .main-tab-btn{
+    border:0;background:transparent;color:var(--muted);cursor:pointer;
+    padding:10px 20px;font-family:var(--font-sans);font-size:10.5px;
+    letter-spacing:.1em;text-transform:uppercase;font-weight:600;
+    transition:all .25s ease;
+  }
+  .main-tab-btn:hover{color:var(--text)}
+  .main-tab-btn.active{background:var(--text);color:#0a0a09}
 
-  .jour-row{display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid #eee;flex-wrap:wrap}
-  .jour-row:last-child{border-bottom:0}
-  .jour-nom{width:100px;font-size:13.5px;font-weight:600}
-  .jour-toggle{display:flex;align-items:center;gap:6px;font-size:12.5px;color:#555}
-  .jour-heures{display:flex;align-items:center;gap:8px;font-size:13px}
-  .jour-heures input[type=time]{padding:7px 8px;border:1px solid #ddd;border-radius:6px;font-size:13px;background:#fff}
-  .jour-ferme-label{font-size:12.5px;color:#999;font-style:italic}
+  /* ---------- cartes planning ---------- */
+  .planning-card{
+    border:1px solid var(--line);background:var(--panel);
+    padding:26px 24px;margin:22px 5% 0;
+  }
+  .planning-card:last-child{margin-bottom:60px}
+  .planning-title{
+    font-family:var(--font-display);font-weight:540;font-size:19px;
+    color:var(--text);margin-bottom:4px;
+  }
+  .planning-sub{font-size:12px;color:var(--muted);margin-bottom:22px;line-height:1.6}
 
-  .btn-save-planning{margin-top:18px;padding:12px 22px;background:#1a1a1a;color:#f5f0e7;border:0;border-radius:6px;font-size:12px;letter-spacing:.06em;cursor:pointer}
+  .jour-row{
+    display:flex;align-items:center;gap:16px;padding:14px 0;
+    border-bottom:1px solid var(--line);flex-wrap:wrap;
+  }
+  .jour-row:last-of-type{border-bottom:0}
+  .jour-nom{
+    width:100px;font-family:var(--font-sans);font-size:12.5px;
+    font-weight:600;color:var(--text);
+  }
+  .jour-toggle{
+    display:flex;align-items:center;gap:7px;font-size:11px;
+    letter-spacing:.04em;color:var(--muted);cursor:pointer;
+  }
+  .jour-toggle input[type=checkbox]{accent-color:var(--gold);width:15px;height:15px}
+  .jour-heures{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text)}
+  .jour-heures input[type=time]{
+    padding:8px 10px;border:1px solid var(--line);background:transparent;
+    color:var(--text);font-family:var(--font-sans);font-size:12.5px;
+    outline:none;color-scheme:dark;
+  }
+  .jour-heures input[type=time]:focus{border-color:rgba(255,255,255,.35)}
+  .jour-ferme-label{font-size:11.5px;color:var(--muted);font-style:italic}
 
-  .semaine-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:10px;flex-wrap:wrap}
-  .semaine-nav-btn{padding:9px 14px;border:1px solid #1a1a1a;background:transparent;border-radius:6px;cursor:pointer;font-size:13px}
-  .semaine-nav-btn:hover{background:#1a1a1a;color:#f5f0e7}
-  .semaine-label{font-family:"Fraunces",serif;font-size:17px;text-align:center;flex:1}
-  .semaine-label small{display:block;font-family:"Switzer",sans-serif;font-size:11px;color:#999;font-weight:400;margin-top:2px}
-  .semaine-today-btn{font-size:11px;color:#888;text-decoration:underline;cursor:pointer;background:none;border:0;padding:0}
+  .btn-save-planning{
+    margin-top:20px;padding:12px 22px;background:var(--text);color:#0a0a09;
+    border:1px solid var(--text);font-family:var(--font-sans);font-size:10.5px;
+    letter-spacing:.1em;text-transform:uppercase;font-weight:700;cursor:pointer;
+    transition:opacity .2s ease;
+  }
+  .btn-save-planning:hover{opacity:.85}
 
-  .jour-row.override .jour-nom{color:#8a5a1e}
-  .jour-row.override{background:#faf3e2;margin:0 -10px;padding:10px;border-radius:6px;border-bottom:1px solid #ecdfc0}
-  .jour-date{font-size:11px;color:#999;width:60px}
-  .override-badge{font-size:9.5px;letter-spacing:.05em;background:#f0e6c9;color:#6b5a1e;padding:2px 7px;border-radius:999px;margin-left:6px}
-  .btn-reset-jour{font-size:11px;color:#b23b3b;text-decoration:underline;background:none;border:0;cursor:pointer;padding:0;white-space:nowrap}
+  /* ---------- vue par semaine ---------- */
+  .semaine-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:10px;flex-wrap:wrap}
+  .semaine-nav-btn{
+    padding:9px 15px;border:1px solid var(--line);background:transparent;
+    color:var(--text);font-family:var(--font-sans);font-size:11px;
+    letter-spacing:.05em;cursor:pointer;transition:border-color .2s ease;
+  }
+  .semaine-nav-btn:hover{border-color:rgba(255,255,255,.4)}
+  .semaine-label{
+    font-family:var(--font-display);font-size:17px;color:var(--text);
+    text-align:center;flex:1;
+  }
+  .semaine-label small{
+    display:block;font-family:var(--font-sans);font-size:10.5px;
+    color:var(--muted);font-weight:400;margin-top:3px;letter-spacing:.04em;
+  }
+  .semaine-today-btn{
+    font-size:10.5px;color:var(--gold);text-decoration:underline;
+    text-underline-offset:3px;cursor:pointer;background:none;border:0;padding:0;
+  }
 
-  .admin-login-err{color:#b23b3b;font-size:12.5px;margin-top:8px}
+  .jour-row.override{
+    background:rgba(163,128,63,.08);margin:0 -12px;padding:14px 12px;
+    border-bottom:1px solid rgba(163,128,63,.25);
+  }
+  .jour-row.override .jour-nom{color:var(--gold)}
+  .jour-date{font-size:10.5px;color:var(--muted);width:56px}
+  .override-badge{
+    font-size:9px;letter-spacing:.07em;background:var(--gold-soft);color:var(--gold);
+    border:1px solid var(--gold-soft);padding:2px 7px;margin-left:8px;font-weight:700;
+  }
+  .btn-reset-jour{
+    font-size:10.5px;color:#d98787;text-decoration:underline;
+    text-underline-offset:3px;background:none;border:0;cursor:pointer;padding:0;
+    white-space:nowrap;
+  }
+
+  .admin-login-err{color:#d98787;font-size:11.5px;margin-top:8px}
 </style>
 </head>
 <body class="admin-body">
@@ -71,9 +141,11 @@
     </div>
   </header>
 
-  <div class="main-tabs">
-    <button class="main-tab-btn active" data-view="reservations" id="tab-reservations">Réservations</button>
-    <button class="main-tab-btn" data-view="planning" id="tab-planning">Gérer mon planning</button>
+  <div class="main-tabs-wrap">
+    <div class="main-tabs">
+      <button class="main-tab-btn active" data-view="reservations" id="tab-reservations">Réservations</button>
+      <button class="main-tab-btn" data-view="planning" id="tab-planning">Gérer mon planning</button>
+    </div>
   </div>
 
   <div id="reservations-view">
