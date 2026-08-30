@@ -10,6 +10,41 @@
 <link href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,600,700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="admin.css">
+<style>
+  /* ---------- Planning (ajouts) ---------- */
+  .main-tabs{display:flex;gap:10px;margin:0 0 28px;border-bottom:1px solid var(--admin-line,#e6ded2);flex-wrap:wrap}
+  .main-tab-btn{padding:12px 4px;margin-right:18px;border:0;background:transparent;font-family:"Switzer",sans-serif;font-size:13px;letter-spacing:.05em;cursor:pointer;color:#888;border-bottom:2px solid transparent;font-weight:500}
+  .main-tab-btn.active{color:#1a1a1a;border-bottom-color:#1a1a1a}
+
+  .planning-card{background:#fff;border:1px solid #e6ded2;border-radius:10px;padding:24px 22px;margin-bottom:22px}
+  .planning-title{font-family:"Fraunces",serif;font-size:19px;margin-bottom:4px}
+  .planning-sub{font-size:12.5px;color:#777;margin-bottom:18px}
+
+  .jour-row{display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid #eee;flex-wrap:wrap}
+  .jour-row:last-child{border-bottom:0}
+  .jour-nom{width:100px;font-size:13.5px;font-weight:600}
+  .jour-toggle{display:flex;align-items:center;gap:6px;font-size:12.5px;color:#555}
+  .jour-heures{display:flex;align-items:center;gap:8px;font-size:13px}
+  .jour-heures input[type=time]{padding:7px 8px;border:1px solid #ddd;border-radius:6px;font-size:13px;background:#fff}
+  .jour-ferme-label{font-size:12.5px;color:#999;font-style:italic}
+
+  .btn-save-planning{margin-top:18px;padding:12px 22px;background:#1a1a1a;color:#f5f0e7;border:0;border-radius:6px;font-size:12px;letter-spacing:.06em;cursor:pointer}
+
+  .semaine-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:10px;flex-wrap:wrap}
+  .semaine-nav-btn{padding:9px 14px;border:1px solid #1a1a1a;background:transparent;border-radius:6px;cursor:pointer;font-size:13px}
+  .semaine-nav-btn:hover{background:#1a1a1a;color:#f5f0e7}
+  .semaine-label{font-family:"Fraunces",serif;font-size:17px;text-align:center;flex:1}
+  .semaine-label small{display:block;font-family:"Switzer",sans-serif;font-size:11px;color:#999;font-weight:400;margin-top:2px}
+  .semaine-today-btn{font-size:11px;color:#888;text-decoration:underline;cursor:pointer;background:none;border:0;padding:0}
+
+  .jour-row.override .jour-nom{color:#8a5a1e}
+  .jour-row.override{background:#faf3e2;margin:0 -10px;padding:10px;border-radius:6px;border-bottom:1px solid #ecdfc0}
+  .jour-date{font-size:11px;color:#999;width:60px}
+  .override-badge{font-size:9.5px;letter-spacing:.05em;background:#f0e6c9;color:#6b5a1e;padding:2px 7px;border-radius:999px;margin-left:6px}
+  .btn-reset-jour{font-size:11px;color:#b23b3b;text-decoration:underline;background:none;border:0;cursor:pointer;padding:0;white-space:nowrap}
+
+  .admin-login-err{color:#b23b3b;font-size:12.5px;margin-top:8px}
+</style>
 </head>
 <body class="admin-body">
 <!-- ============ ÉCRAN DE CONNEXION ============ -->
@@ -25,6 +60,7 @@
     <p class="admin-login-err" id="admin-login-err"></p>
   </div>
 </section>
+
 <!-- ============ DASHBOARD ============ -->
 <div class="admin-dash" id="admin-dash" style="display:none">
   <header class="admin-header">
@@ -34,43 +70,79 @@
       <button class="admin-btn ghost" id="logout-btn">Déconnexion</button>
     </div>
   </header>
-  <div class="admin-stats" id="admin-stats"></div>
-  <div class="admin-filters" id="admin-filters">
-    <button class="admin-chip active" data-filter="all">Tout</button>
-    <button class="admin-chip" data-filter="slot">Invitée</button>
-    <button class="admin-chip" data-filter="formation">Formation</button>
-    <button class="admin-chip" data-filter="mariee">Mariée</button>
+
+  <div class="main-tabs">
+    <button class="main-tab-btn active" data-view="reservations" id="tab-reservations">Réservations</button>
+    <button class="main-tab-btn" data-view="planning" id="tab-planning">Gérer mon planning</button>
   </div>
-  <main class="admin-board" id="admin-board">
-    <section class="admin-col" data-status="en attente">
-      <h2 class="admin-col-title">
-        <span>En attente</span>
-        <span class="admin-col-count" id="count-attente">0</span>
-      </h2>
-      <div class="admin-col-body" id="col-attente">
-        <p class="admin-empty">Aucune demande en attente.</p>
+
+  <div id="reservations-view">
+    <div class="admin-stats" id="admin-stats"></div>
+    <div class="admin-filters" id="admin-filters">
+      <button class="admin-chip active" data-filter="all">Tout</button>
+      <button class="admin-chip" data-filter="slot">Invitée</button>
+      <button class="admin-chip" data-filter="formation">Formation</button>
+      <button class="admin-chip" data-filter="mariee">Mariée</button>
+    </div>
+    <main class="admin-board" id="admin-board">
+      <section class="admin-col" data-status="en attente">
+        <h2 class="admin-col-title">
+          <span>En attente</span>
+          <span class="admin-col-count" id="count-attente">0</span>
+        </h2>
+        <div class="admin-col-body" id="col-attente">
+          <p class="admin-empty">Aucune demande en attente.</p>
+        </div>
+      </section>
+      <section class="admin-col" data-status="acceptée">
+        <h2 class="admin-col-title">
+          <span>Acceptées</span>
+          <span class="admin-col-count" id="count-acceptee">0</span>
+        </h2>
+        <div class="admin-col-body" id="col-acceptee">
+          <p class="admin-empty">Aucune demande acceptée.</p>
+        </div>
+      </section>
+      <section class="admin-col" data-status="refusée">
+        <h2 class="admin-col-title">
+          <span>Refusées</span>
+          <span class="admin-col-count" id="count-refusee">0</span>
+        </h2>
+        <div class="admin-col-body" id="col-refusee">
+          <p class="admin-empty">Aucune demande refusée.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="planning-view" style="display:none">
+    <div class="planning-card">
+      <h2 class="planning-title">Horaires récurrents</h2>
+      <p class="planning-sub">C'est la base appliquée par défaut chaque semaine. Utilisez la vue par semaine ci-dessous pour ajuster un jour précis.</p>
+      <div id="jours-list"></div>
+      <button class="btn-save-planning" id="save-horaires-btn">Enregistrer les horaires</button>
+    </div>
+
+    <div class="planning-card">
+      <h2 class="planning-title">Vue par semaine</h2>
+      <p class="planning-sub">Modifiez les horaires d'un jour précis (ex : fermer un mardi, changer une heure) sans toucher à vos horaires récurrents.</p>
+
+      <div class="semaine-nav">
+        <button class="semaine-nav-btn" id="semaine-prec-btn">← Semaine préc.</button>
+        <div class="semaine-label" id="semaine-label">
+          — <small id="semaine-sublabel"></small>
+        </div>
+        <button class="semaine-nav-btn" id="semaine-suiv-btn">Semaine suiv. →</button>
       </div>
-    </section>
-    <section class="admin-col" data-status="acceptée">
-      <h2 class="admin-col-title">
-        <span>Acceptées</span>
-        <span class="admin-col-count" id="count-acceptee">0</span>
-      </h2>
-      <div class="admin-col-body" id="col-acceptee">
-        <p class="admin-empty">Aucune demande acceptée.</p>
+      <div style="text-align:center;margin-bottom:18px">
+        <button class="semaine-today-btn" id="semaine-today-btn">Revenir à cette semaine</button>
       </div>
-    </section>
-    <section class="admin-col" data-status="refusée">
-      <h2 class="admin-col-title">
-        <span>Refusées</span>
-        <span class="admin-col-count" id="count-refusee">0</span>
-      </h2>
-      <div class="admin-col-body" id="col-refusee">
-        <p class="admin-empty">Aucune demande refusée.</p>
-      </div>
-    </section>
-  </main>
+
+      <div id="semaine-jours-list"></div>
+    </div>
+  </div>
 </div>
+
 <!-- Carte-modèle (clonée en JS, jamais affichée telle quelle) -->
 <template id="card-template">
   <article class="admin-card">
@@ -85,9 +157,9 @@
     <div class="admin-card-actions"></div>
   </article>
 </template>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-<script src="admin.js"></script>  
 <script src="admin.js"></script>
 </body>
 </html>
