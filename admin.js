@@ -70,14 +70,21 @@ passInput.addEventListener('keydown', e=>{ if(e.key==='Enter') tryLogin(); });
 function showDash(){
   loginScreen.style.display = 'none';
   dashScreen.style.display = 'block';
-  loadData();
+  refreshAllData();
 }
 
 document.getElementById('logout-btn').addEventListener('click', async ()=>{
   await supabaseClient.auth.signOut();
   location.reload();
 });
-document.getElementById('refresh-btn').addEventListener('click', loadData);
+
+async function refreshAllData(){
+  await loadData();
+  if(document.getElementById('planning-view').style.display !== 'none') await loadPlanning();
+  if(document.getElementById('calendrier-view').style.display !== 'none') await loadCalendrier();
+}
+
+document.getElementById('refresh-btn').addEventListener('click', refreshAllData);
 
 // Reste connectée si une session existe déjà (pas besoin de se reconnecter à chaque visite)
 supabaseClient.auth.getSession().then(({data})=>{
@@ -295,6 +302,7 @@ async function updateStatus(card, newStatus){
     }
 
     renderBoard();
+    await refreshAllData();
   }catch(e){
     console.error('Mise à jour du statut impossible.', e);
     alert("Impossible de mettre à jour cette demande.");
@@ -313,6 +321,22 @@ async function deleteCard(card){
         .from('creneaux_bloques')
         .delete()
         .eq('reservation_id', card.id);
+
+      if(card.date){
+        await supabaseClient
+          .from('creneaux_bloques')
+          .delete()
+          .eq('date', card.date)
+          .eq('heure_debut', card.heure || '10:00');
+      }
+
+      if(card.type === 'formation' && card.date){
+        await supabaseClient
+          .from('creneaux_bloques')
+          .delete()
+          .eq('date', card.date)
+          .eq('heure_debut', '00:00');
+      }
     }
 
     const { error } = await supabaseClient
@@ -323,6 +347,7 @@ async function deleteCard(card){
 
     ALL_CARDS = ALL_CARDS.filter(c => !(c.table === card.table && c.id === card.id));
     renderBoard();
+    await refreshAllData();
     showToast('Demande supprimée');
   }catch(e){
     console.error('Suppression impossible.', e);
