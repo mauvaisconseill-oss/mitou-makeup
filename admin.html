@@ -126,6 +126,62 @@
     .admin-board{grid-template-columns:repeat(2,1fr) !important;max-width:900px}
   }
 
+  /* ---------- calendrier ---------- */
+  .cal-grid{
+    display:grid;grid-template-columns:repeat(7,1fr);gap:1px;
+    background:var(--line);border:1px solid var(--line);
+  }
+  .cal-day-head{
+    background:var(--panel);color:var(--muted);text-align:center;
+    padding:8px 4px;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;
+  }
+  .cal-cell{
+    background:var(--bg);min-height:86px;padding:8px 6px;position:relative;
+    cursor:pointer;transition:background .2s ease;
+  }
+  .cal-cell:hover{background:rgba(255,255,255,.03)}
+  .cal-cell.empty{background:var(--panel);cursor:default}
+  .cal-cell.empty:hover{background:var(--panel)}
+  .cal-cell.today{box-shadow:inset 0 0 0 1px var(--gold)}
+  .cal-daynum{font-size:11px;color:var(--muted);margin-bottom:5px}
+  .cal-cell.today .cal-daynum{color:var(--gold);font-weight:700}
+  .cal-dots{display:flex;flex-direction:column;gap:3px}
+  .cal-dot{
+    font-size:9px;padding:2px 5px;line-height:1.5;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;font-weight:600;
+  }
+  .cal-dot.slot{background:rgba(155,207,155,.15);color:#9bcf9b}
+  .cal-dot.formation{background:var(--gold-soft);color:var(--gold)}
+  .cal-dot.mariee{background:rgba(217,135,135,.15);color:#e3bcbc}
+  .cal-more{font-size:9px;color:var(--muted);padding:2px 5px}
+
+  .cal-legend{display:flex;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+  .cal-legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+  .cal-legend-dot{width:9px;height:9px;border-radius:2px}
+  .cal-legend-dot.slot{background:#9bcf9b}
+  .cal-legend-dot.formation{background:var(--gold)}
+  .cal-legend-dot.mariee{background:#e3bcbc}
+
+  .cal-detail-item{
+    padding:14px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  }
+  .cal-detail-item:last-child{border-bottom:0}
+  .cal-detail-name{font-family:var(--font-display);font-size:16px;color:var(--text)}
+  .cal-detail-meta{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .cal-detail-type{
+    font-size:9px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;
+    padding:3px 9px;height:fit-content;
+  }
+  .cal-detail-type.slot{background:rgba(155,207,155,.15);color:#9bcf9b}
+  .cal-detail-type.formation{background:var(--gold-soft);color:var(--gold)}
+  .cal-detail-type.mariee{background:rgba(217,135,135,.15);color:#e3bcbc}
+
+  @media(max-width:700px){
+    .cal-day-head{font-size:8px}
+    .cal-cell{min-height:60px;padding:5px 3px}
+    .cal-dot{font-size:7.5px;padding:1px 3px}
+  }
+
   /* ---------- toast de confirmation (remplace les popups natives) ---------- */
   .toast-msg{
     position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(10px);
@@ -168,6 +224,7 @@
     <div class="main-tabs">
       <button class="main-tab-btn active" data-view="reservations" id="tab-reservations">Réservations</button>
       <button class="main-tab-btn" data-view="planning" id="tab-planning">Gérer mon planning</button>
+      <button class="main-tab-btn" data-view="calendrier" id="tab-calendrier">Calendrier</button>
     </div>
   </div>
 
@@ -225,6 +282,35 @@
       </div>
 
       <div id="semaine-jours-list"></div>
+    </div>
+  </div>
+
+  <div id="calendrier-view" style="display:none">
+    <div class="planning-card">
+      <h2 class="planning-title">Vue d'ensemble</h2>
+      <p class="planning-sub">Tous les rendez-vous acceptés (invitées, formations, mariées) — un coup d'œil pour repérer les journées chargées.</p>
+
+      <div class="semaine-nav">
+        <button class="semaine-nav-btn" id="mois-prec-btn">← Mois préc.</button>
+        <div class="semaine-label" id="mois-label"></div>
+        <button class="semaine-nav-btn" id="mois-suiv-btn">Mois suiv. →</button>
+      </div>
+      <div style="text-align:center;margin-bottom:22px">
+        <button class="semaine-today-btn" id="mois-today-btn">Revenir à ce mois-ci</button>
+      </div>
+
+      <div class="cal-legend">
+        <span class="cal-legend-item"><span class="cal-legend-dot slot"></span>Invitée</span>
+        <span class="cal-legend-item"><span class="cal-legend-dot formation"></span>Formation</span>
+        <span class="cal-legend-item"><span class="cal-legend-dot mariee"></span>Mariée</span>
+      </div>
+
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
+
+    <div class="planning-card" id="cal-detail-card" style="display:none">
+      <h2 class="planning-title" id="cal-detail-title">—</h2>
+      <div id="cal-detail-body"></div>
     </div>
   </div>
 </div>
