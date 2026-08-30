@@ -615,7 +615,8 @@ async function submitReservation(){
     statusEl.style.color = "#9bcf9b";
   }catch(e){
     console.error('Réservation : envoi Supabase impossible.', e);
-    statusEl.textContent = "Une erreur est survenue lors de l'envoi, merci de réessayer.";
+    const detail = (e && (e.message || e.error_description || e.details)) ? ` (${e.message || e.error_description || e.details})` : '';
+    statusEl.textContent = "Une erreur est survenue lors de l'envoi, merci de réessayer." + detail;
     statusEl.style.color = "#d98787";
   }
 }
