@@ -226,6 +226,8 @@ function selectItem(item){
   if(document.getElementById('dep-non-btn')) setDep('non');
   if(document.getElementById('dep-city')) document.getElementById('dep-city').value = '';
   if(document.getElementById('dep-people')) document.getElementById('dep-people').value = '3';
+  if(document.getElementById('dep-people-precise')) document.getElementById('dep-people-precise').value = '';
+  if(document.getElementById('dep-people-precise-box')) document.getElementById('dep-people-precise-box').style.display = 'none';
   if(document.getElementById('dep-address')) document.getElementById('dep-address').value = '';
   goStep(2);
   document.getElementById('wizard').scrollIntoView({behavior:'smooth', block:'start'});
@@ -311,8 +313,17 @@ function setDep(val){
   }
 }
 const depPeopleSel = document.getElementById('dep-people');
+const depPeoplePreciseBox = document.getElementById('dep-people-precise-box');
+const depPeoplePreciseInput = document.getElementById('dep-people-precise');
 if(depPeopleSel){
-  depPeopleSel.addEventListener('change', ()=>{ depState.personnes = depPeopleSel.value; });
+  depPeopleSel.addEventListener('change', ()=>{
+    depState.personnes = depPeopleSel.value;
+    if(depPeoplePreciseBox){
+      const afficher = depPeopleSel.value === '7+';
+      depPeoplePreciseBox.style.display = afficher ? 'block' : 'none';
+      if(!afficher && depPeoplePreciseInput) depPeoplePreciseInput.value = '';
+    }
+  });
 }
 function resetDepResult(){
   const r = document.getElementById('dep-result');
@@ -484,7 +495,13 @@ function renderSummary(){
   const total = prixNumerique(current.price) + depl;
   let deplRow = '';
   if(current.type === 'slot' && depState.actif){
-    const nb = depState.personnes === '7+' ? '7 personnes ou plus' : `${depState.personnes} personnes`;
+    let nb;
+    if(depState.personnes === '7+'){
+      const precise = depPeoplePreciseInput ? depPeoplePreciseInput.value.trim() : '';
+      nb = precise ? precise : '7 personnes ou plus';
+    } else {
+      nb = `${depState.personnes} personnes`;
+    }
     deplRow = `<div class="wz-summary-row"><span>Déplacement</span><b>${nb} · ${depState.label || 'à calculer'}</b></div>`;
   }
   document.getElementById('wz-summary').innerHTML = `
@@ -571,7 +588,11 @@ async function submitReservation(){
       date_rdv: date,
       heure_rdv: heure,
       deplacement: (current.type==='slot' && depState.actif) ? (depState.label || 'oui') : 'non',
-      deplacement_personnes: (current.type==='slot' && depState.actif) ? depState.personnes : '',
+      deplacement_personnes: (current.type==='slot' && depState.actif)
+        ? (depState.personnes === '7+'
+            ? (depPeoplePreciseInput && depPeoplePreciseInput.value.trim() ? depPeoplePreciseInput.value.trim() : '7 personnes ou plus')
+            : depState.personnes)
+        : '',
       adresse: (current.type==='slot' && depState.actif) ? document.getElementById('dep-address').value.trim() : '',
       nom, email, telephone: tel, instagram: insta,
       capture_paiement: captureUrl,
