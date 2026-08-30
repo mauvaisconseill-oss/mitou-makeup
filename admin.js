@@ -24,6 +24,22 @@ try{
   console.warn('EmailJS : initialisation impossible.', e);
 }
 
+/* ---------- toast discret (remplace les popups natives pour les confirmations) ---------- */
+function showToast(message){
+  let toast = document.getElementById('toast-msg');
+  if(toast) toast.remove();
+  toast = document.createElement('div');
+  toast.id = 'toast-msg';
+  toast.className = 'toast-msg';
+  toast.innerHTML = `<span class="toast-dot">✓</span> ${message}`;
+  document.body.appendChild(toast);
+  requestAnimationFrame(()=> toast.classList.add('show'));
+  setTimeout(()=>{
+    toast.classList.remove('show');
+    setTimeout(()=> toast.remove(), 300);
+  }, 2000);
+}
+
 /* ---------- connexion (vraie auth Supabase) ---------- */
 const loginScreen = document.getElementById('admin-login');
 const dashScreen  = document.getElementById('admin-dash');
@@ -390,7 +406,7 @@ async function saveHoraires(){
 
   if(error){ alert("Erreur lors de l'enregistrement des horaires."); return; }
   horairesActuels = nouveauxJours;
-  alert("Horaires enregistrés ✓");
+  showToast("Horaires enregistrés");
   await loadSemaine();
 }
 
@@ -525,6 +541,7 @@ async function sauvegarderOverride(dateISO){
     .upsert({ date: dateISO, ouvert, debut, fin, updated_at: new Date().toISOString() }, { onConflict: 'date' });
 
   if(error){ alert("Erreur lors de l'enregistrement de ce jour."); return; }
+  showToast("Modification enregistrée");
   await loadSemaine();
 }
 
@@ -532,5 +549,5 @@ async function resetJourSemaine(dateISO){
   if(!confirm("Revenir à l'horaire habituel pour ce jour ?")) return;
   const { error } = await supabaseClient.from('planning_overrides').delete().eq('date', dateISO);
   if(error){ alert("Erreur lors de la suppression."); return; }
-  await loadSemaine();
-}
+  showToast("Horaire habituel rétabli");
+  await loadSemaine();}
