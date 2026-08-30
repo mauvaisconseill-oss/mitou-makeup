@@ -114,6 +114,29 @@
   }
 
   .admin-login-err{color:#d98787;font-size:11.5px;margin-top:8px}
+
+  /* ---------- bouton Supprimer sur les cartes réservation ---------- */
+  .admin-card-actions .delete{
+    background:transparent;color:#d98787;border-color:#d98787;flex:1;
+  }
+  .admin-card-actions .delete:hover{background:rgba(217,135,135,.1)}
+
+  /* ---------- board à 2 colonnes (plus de colonne "Refusées") ---------- */
+  @media(min-width:900px){
+    .admin-board{grid-template-columns:repeat(2,1fr) !important;max-width:900px}
+  }
+
+  /* ---------- toast de confirmation (remplace les popups natives) ---------- */
+  .toast-msg{
+    position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(10px);
+    background:var(--panel);border:1px solid var(--gold-soft);color:var(--text);
+    padding:13px 24px;font-family:var(--font-sans);font-size:12px;letter-spacing:.04em;
+    display:flex;align-items:center;gap:9px;z-index:9999;
+    box-shadow:0 14px 40px rgba(0,0,0,.45);
+    opacity:0;transition:opacity .25s ease,transform .25s ease;pointer-events:none;
+  }
+  .toast-msg.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .toast-msg .toast-dot{color:var(--gold);font-size:14px;line-height:1}
 </style>
 </head>
 <body class="admin-body">
@@ -173,15 +196,6 @@
         </h2>
         <div class="admin-col-body" id="col-acceptee">
           <p class="admin-empty">Aucune demande acceptée.</p>
-        </div>
-      </section>
-      <section class="admin-col" data-status="refusée">
-        <h2 class="admin-col-title">
-          <span>Refusées</span>
-          <span class="admin-col-count" id="count-refusee">0</span>
-        </h2>
-        <div class="admin-col-body" id="col-refusee">
-          <p class="admin-empty">Aucune demande refusée.</p>
         </div>
       </section>
     </main>
