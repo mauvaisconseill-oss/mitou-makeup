@@ -1,8 +1,8 @@
 const PAYPAL_HANDLE = "Mitoumakeup";
 const IG_HANDLE = "mitou_makeup";
 
-const SUPABASE_URL = "https://VOTRE-PROJET.supabase.co"; // ⚠️ à remplacer
-const SUPABASE_ANON_KEY = "VOTRE_CLE_ANON_PUBLIC";        // ⚠️ à remplacer
+const SUPABASE_URL = "https://cayadmbypnfukskotrma.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNheWFkbWJ5cG5mdWtza290cm1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0OTcxODIsImV4cCI6MjEwMzA3MzE4Mn0._j5jQ1kXYOz5NhJLBsRlGXI8HEBRMQCo3ka3QrjYUe0";
 
 let supabase = null;
 try{
@@ -197,7 +197,6 @@ async function postAvis(){
 
 /* ---------- wizard ---------- */
 let current = null;
-const OUVERTURE = 10*60, FERMETURE = 19*60;
 const ALL_ITEMS = [
   ...Object.values(TONES).map(t=>({name:t.name, price:t.price, dep:t.dep, type:'slot', desc:t.desc})),
   ...FORMATIONS.map(f=>({name:f.name, price:f.price, dep:f.dep, type:'formation', desc:f.desc}))
@@ -387,17 +386,68 @@ async function calcDist(){
   btn.disabled = false;
 }
 
+/* ============================================================
+   HORAIRES — branchés sur planning_config / planning_overrides
+   (configurés depuis l'admin, plus de valeurs fixes en dur)
+   ============================================================ */
+const JOURS_INDEX = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+let PLANNING_CACHE = null;
+
+async function getPlanningConfig(){
+  if(PLANNING_CACHE) return PLANNING_CACHE;
+  try{
+    const { data, error } = await supabase.from('planning_config').select('*').eq('id', 1).maybeSingle();
+    if(error) throw error;
+    PLANNING_CACHE = data ? data.jours : {};
+  }catch(e){
+    console.warn('Planning : lecture des horaires récurrents impossible.', e);
+    PLANNING_CACHE = {};
+  }
+  return PLANNING_CACHE;
+}
+
+async function getHorairesDuJour(dateISO){
+  const jours = await getPlanningConfig();
+  const dateObj = new Date(dateISO + 'T00:00:00');
+  const jourKey = JOURS_INDEX[dateObj.getDay()];
+  const defaut = jours[jourKey] || { ouvert:false };
+
+  try{
+    const { data, error } = await supabase
+      .from('planning_overrides')
+      .select('*')
+      .eq('date', dateISO)
+      .maybeSingle();
+    if(error) throw error;
+    if(data) return { ouvert: data.ouvert, debut: data.debut, fin: data.fin };
+  }catch(e){
+    console.warn('Planning : lecture des exceptions impossible.', e);
+  }
+  return defaut;
+}
+
 const heureSel = document.getElementById('heure_rdv');
 async function refreshHeureAvailability(){
   heureSel.innerHTML = '<option value="">Choisir un créneau</option>';
-  for(let m = OUVERTURE; m <= FERMETURE; m += 60){
-    const h = Math.floor(m/60);
+  const date = document.getElementById('date_rdv').value;
+  if(!date) return;
+
+  const horaires = await getHorairesDuJour(date);
+
+  if(!horaires || !horaires.ouvert){
+    heureSel.innerHTML = '<option value="">Fermé ce jour-là — choisissez une autre date</option>';
+    return;
+  }
+
+  const [hDeb] = (horaires.debut || '10:00').split(':').map(Number);
+  const [hFin] = (horaires.fin || '19:00').split(':').map(Number);
+
+  for(let h = hDeb; h <= hFin; h++){
     const opt = document.createElement('option');
     opt.value = `${h}:00`; opt.textContent = `${h}:00`;
     heureSel.appendChild(opt);
   }
-  const date = document.getElementById('date_rdv').value;
-  if(!date) return;
+
   try{
     const { data, error } = await supabase
       .from('creneaux_bloques')
@@ -409,7 +459,7 @@ async function refreshHeureAvailability(){
         if(!opt.value) return;
         if(opt.value >= bloc.heure_debut && opt.value < bloc.heure_fin){
           opt.disabled = true;
-          opt.textContent = opt.value + ' (indisponible)';
+          opt.textContent = opt.value + ' — déjà pris';
         }
       });
     });
@@ -504,7 +554,7 @@ async function submitReservation(){
     const { data: urlData } = supabase.storage.from('captures').getPublicUrl(cheminFichier);
     const captureUrl = urlData.publicUrl;
 
-    const { error: insertError } = await supabase.from('reservations').insert({
+    const { data: inserted, error: insertError } = await supabase.from('reservations').insert({
       type: current.type,
       prestation: current.name,
       prix: current.price,
@@ -518,28 +568,17 @@ async function submitReservation(){
       nom, email, telephone: tel, instagram: insta,
       capture_paiement: captureUrl,
       status: 'en attente'
-    });
+    }).select('id').single();
     if(insertError) throw insertError;
-        // Bloquer ce créneau pour que personne d'autre ne le réserve
-    if(current.type === 'slot' && heure){
-      const { data: nouvelleResa } = await supabase
-        .from('reservations')
-        .select('id')
-        .eq('email', email)
-        .eq('date_rdv', date)
-        .eq('heure_rdv', heure)
-        .order('created_at', { ascending:false })
-        .limit(1)
-        .single();
 
+    if(current.type === 'slot' && heure){
       const [hDeb] = heure.split(':').map(Number);
       const heureFin = `${hDeb + 1}:00`;
-
       await supabase.from('creneaux_bloques').insert({
         date: date,
         heure_debut: heure,
         heure_fin: heureFin,
-        reservation_id: nouvelleResa ? nouvelleResa.id : null
+        reservation_id: inserted ? inserted.id : null
       });
     }
 
