@@ -59,12 +59,20 @@ document.querySelectorAll('.admin-chip').forEach(chip=>{
 /* ---------- chargement des données ---------- */
 let ALL_CARDS = [];
 
-async function loadData(){
-  if(!supabaseClient){
-    document.getElementById('admin-stats').innerHTML =
-      '<p style="color:#d98787;font-size:12px">Supabase non configuré.</p>';
-    return;
+async function updateStatus(card, newStatus){
+  try{
+    const { error } = await supabaseClient
+      .from(card.table)
+      .update({ status:newStatus })
+      .eq('id', card.id);
+    if(error) throw error;
+    card.status = newStatus;
+    renderBoard();
+  }catch(e){
+    console.error('Mise à jour du statut impossible.', e);
+    alert("Impossible de mettre à jour cette demande.");
   }
+}
 
   const cards = [];
 
