@@ -571,7 +571,10 @@ async function submitReservation(){
   statusEl.style.color = "";
 
   try{
-    const cheminFichier = `${Date.now()}_${captureFile.name}`;
+    // Supabase Storage refuse les espaces, accents et apostrophes dans les
+    // noms de fichiers ("Invalid key") — on nettoie le nom avant l'upload.
+    const extension = (captureFile.name.match(/\.[^.]+$/) || [''])[0];
+    const cheminFichier = `${Date.now()}${extension}`;
     const { error: uploadError } = await supabaseClient.storage
       .from('capture')
       .upload(cheminFichier, captureFile);
