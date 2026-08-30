@@ -25,19 +25,26 @@ try{
 }
 
 /* ---------- toast discret (remplace les popups natives pour les confirmations) ---------- */
-function showToast(message){
+function showToast(message, tone = 'info'){
   let toast = document.getElementById('toast-msg');
   if(toast) toast.remove();
   toast = document.createElement('div');
   toast.id = 'toast-msg';
-  toast.className = 'toast-msg';
-  toast.innerHTML = `<span class="toast-dot">✓</span> ${message}`;
+  toast.className = `toast-msg ${tone}`;
+
+  const iconMap = {
+    success: '✓',
+    danger: '×',
+    info: '•'
+  };
+
+  toast.innerHTML = `<span class="toast-dot">${iconMap[tone] || '•'}</span> <span>${message}</span>`;
   document.body.appendChild(toast);
   requestAnimationFrame(()=> toast.classList.add('show'));
   setTimeout(()=>{
     toast.classList.remove('show');
     setTimeout(()=> toast.remove(), 300);
-  }, 2000);
+  }, 2600);
 }
 
 /* ---------- connexion (vraie auth Supabase) ---------- */
@@ -84,7 +91,16 @@ async function refreshAllData(){
   await loadCalendrier();
 }
 
-document.getElementById('refresh-btn').addEventListener('click', refreshAllData);
+document.getElementById('refresh-btn').addEventListener('click', async ()=>{
+  try {
+    await refreshAllData();
+    showToast('Données actualisées ✨', 'success');
+  } catch (e) {
+    console.error('Refresh impossible :', e);
+    showToast('Actualisation impossible — rechargement de la page', 'info');
+    setTimeout(() => location.reload(), 700);
+  }
+});
 
 // Reste connectée si une session existe déjà (pas besoin de se reconnecter à chaque visite)
 supabaseClient.auth.getSession().then(({data})=>{
@@ -290,22 +306,22 @@ async function updateStatus(card, newStatus){
     if(newStatus === 'acceptée' && card.table === 'reservations'){
       try{
         await envoyerEmailAcceptation(card);
-        showToast(`Demande acceptée — e-mail envoyé à ${card.name || 'la cliente'}`);
+        showToast(`Rendez-vous confirmé ✅ — ${card.name || 'la cliente'} a bien été acceptée`, 'success');
       }catch(e){
         console.error('Email non envoyé :', e);
-        alert("Statut mis à jour, mais l'e-mail n'a pas pu être envoyé — vérifie les identifiants EmailJS.");
+        showToast('Rendez-vous confirmé ✅ — e-mail non envoyé', 'success');
       }
     } else if(newStatus === 'acceptée'){
-      showToast(`Demande de ${card.name || 'cette personne'} acceptée`);
+      showToast(`Demande acceptée ✅ — ${card.name || 'cette personne'}`, 'success');
     } else if(newStatus === 'en attente'){
-      showToast('Remise en attente');
+      showToast('Demande remise en attente', 'info');
     }
 
     renderBoard();
     await refreshAllData();
   }catch(e){
     console.error('Mise à jour du statut impossible.', e);
-    alert("Impossible de mettre à jour cette demande.");
+    showToast('Impossible de mettre à jour cette demande.', 'danger');
   }
 }
 
@@ -348,10 +364,10 @@ async function deleteCard(card){
     ALL_CARDS = ALL_CARDS.filter(c => !(c.table === card.table && c.id === card.id));
     renderBoard();
     await refreshAllData();
-    showToast('Demande supprimée');
+    showToast('Demande supprimée ✨ — le créneau est bien libéré', 'danger');
   }catch(e){
     console.error('Suppression impossible.', e);
-    alert("Impossible de supprimer cette demande.");
+    showToast('Impossible de supprimer cette demande.', 'danger');
   }
 }
 
