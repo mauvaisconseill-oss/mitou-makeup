@@ -283,10 +283,15 @@ async function updateStatus(card, newStatus){
     if(newStatus === 'acceptée' && card.table === 'reservations'){
       try{
         await envoyerEmailAcceptation(card);
+        showToast(`Demande acceptée — e-mail envoyé à ${card.name || 'la cliente'}`);
       }catch(e){
         console.error('Email non envoyé :', e);
         alert("Statut mis à jour, mais l'e-mail n'a pas pu être envoyé — vérifie les identifiants EmailJS.");
       }
+    } else if(newStatus === 'acceptée'){
+      showToast(`Demande de ${card.name || 'cette personne'} acceptée`);
+    } else if(newStatus === 'en attente'){
+      showToast('Remise en attente');
     }
 
     renderBoard();
@@ -318,6 +323,7 @@ async function deleteCard(card){
 
     ALL_CARDS = ALL_CARDS.filter(c => !(c.table === card.table && c.id === card.id));
     renderBoard();
+    showToast('Demande supprimée');
   }catch(e){
     console.error('Suppression impossible.', e);
     alert("Impossible de supprimer cette demande.");
