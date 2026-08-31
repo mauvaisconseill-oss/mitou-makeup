@@ -462,27 +462,6 @@ function intervalsOverlap(startA, endA, startB, endB){
   return startA < endB && endA > startB;
 }
 
-function showBookingModal(message){
-  const modal = document.getElementById('booking-modal');
-  const text = document.getElementById('booking-modal-text');
-  const closeBtn = document.getElementById('booking-modal-close');
-  if(!modal || !text || !closeBtn) return;
-
-  text.textContent = message;
-  modal.classList.add('open');
-  modal.setAttribute('aria-hidden', 'false');
-
-  const close = () => {
-    modal.classList.remove('open');
-    modal.setAttribute('aria-hidden', 'true');
-  };
-
-  closeBtn.onclick = close;
-  modal.onclick = (event) => {
-    if(event.target === modal) close();
-  };
-}
-
 const heureSel = document.getElementById('heure_rdv');
 async function refreshHeureAvailability(){
   heureSel.innerHTML = '<option value="">Choisir un créneau</option>';
@@ -761,7 +740,6 @@ async function submitReservation(){
       : "Ce créneau a déjà été réservé par une autre cliente. Merci de choisir un autre horaire.";
     statusEl.textContent = message;
     statusEl.style.color = "#d98787";
-    showBookingModal(message);
     return;
   }
 
@@ -842,7 +820,6 @@ async function submitReservation(){
     const message = "Ce créneau a déjà été réservé par une autre cliente. Merci de choisir un autre horaire.";
     statusEl.textContent = message;
     statusEl.style.color = "#d98787";
-    showBookingModal(message);
     isSubmittingReservation = false;
   }
 }
