@@ -151,3 +151,198 @@
   .admin-board{grid-template-columns:repeat(3,1fr);gap:22px}
   .admin-col-body{max-height:64vh}
 }
+
+@media(max-width:700px){
+  .admin-header{
+    padding:14px 4%;
+    align-items:center;
+    gap:10px;
+  }
+
+  .admin-header .admin-brand{
+    font-size:18px;
+    line-height:1.1;
+  }
+
+  .admin-header-actions{
+    width:100%;
+    justify-content:space-between;
+  }
+
+  .admin-btn{
+    flex:1;
+    padding:10px 12px;
+    font-size:9.5px;
+    letter-spacing:.08em;
+  }
+
+  .admin-stats{
+    padding:18px 4% 0;
+    gap:12px 18px;
+  }
+
+  .admin-stat-num{
+    font-size:22px;
+  }
+
+  .admin-stat-label{
+    font-size:8.5px;
+    letter-spacing:.12em;
+  }
+
+  .admin-filters{
+    padding:16px 4% 0;
+    gap:6px;
+  }
+
+  .admin-chip{
+    flex:1 1 calc(50% - 6px);
+    min-width:0;
+    padding:9px 10px;
+    text-align:center;
+    font-size:9.5px;
+  }
+
+  .admin-board{
+    padding:18px 4% 60px;
+    gap:14px;
+  }
+
+  .admin-col-title{
+    padding:12px 12px;
+    font-size:15px;
+  }
+
+  .admin-col-count{
+    font-size:10px;
+    padding:2px 7px;
+  }
+
+  .admin-col-body{
+    padding:12px;
+    gap:10px;
+    max-height:none;
+  }
+
+  .admin-card{
+    padding:12px;
+  }
+
+  .admin-card-top{
+    align-items:flex-start;
+    gap:8px;
+  }
+
+  .admin-card-type{
+    font-size:8px;
+    letter-spacing:.14em;
+  }
+
+  .admin-card-total{
+    font-size:15px;
+  }
+
+  .admin-card-name{
+    font-size:17px;
+    line-height:1.2;
+  }
+
+  .admin-card-service{
+    font-size:11px;
+    margin-bottom:8px;
+  }
+
+  .admin-card-meta{
+    font-size:10.5px;
+    gap:5px;
+  }
+
+  .admin-card-actions{
+    gap:6px;
+    margin-top:12px;
+    flex-wrap:wrap;
+  }
+
+  .admin-card-actions button{
+    flex:1 1 calc(50% - 6px);
+    min-width:0;
+    padding:9px 8px;
+    font-size:9px;
+    letter-spacing:.06em;
+  }
+
+  .admin-card-actions .accept,
+  .admin-card-actions .revert,
+  .admin-card-actions .delete,
+  .admin-card-actions .toggle-hidden{
+    flex-basis:calc(33.333% - 4px);
+  }
+
+  .main-tabs-wrap{
+    padding:18px 4% 0;
+  }
+
+  .main-tabs{
+    width:100%;
+    justify-content:space-between;
+  }
+
+  .main-tab-btn{
+    flex:1;
+    padding:10px 8px;
+    font-size:9px;
+    letter-spacing:.08em;
+  }
+
+  .planning-card{
+    padding:18px 14px;
+    margin:18px 4% 0;
+  }
+
+  .planning-title{
+    font-size:17px;
+  }
+
+  .jour-row{
+    gap:10px;
+    padding:12px 0;
+  }
+
+  .jour-nom{
+    width:72px;
+    font-size:11px;
+  }
+
+  .jour-toggle,
+  .jour-ferme-label,
+  .jour-heures,
+  .jour-heures input[type=time]{
+    font-size:11px;
+  }
+
+  .jour-heures{
+    width:100%;
+    justify-content:space-between;
+  }
+
+  .jour-heures input[type=time]{
+    flex:1;
+    min-width:0;
+  }
+
+  .confirm-modal-box{
+    padding:22px 18px;
+  }
+
+  .confirm-modal-title{
+    font-size:22px;
+  }
+
+  .confirm-modal-actions{
+    flex-direction:column-reverse;
+  }
+
+  .confirm-modal-actions button{
+    width:100%;
+  }
+}
