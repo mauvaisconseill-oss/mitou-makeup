@@ -429,11 +429,16 @@ async function deleteCard(card){
         }
       }
 
-      const { error } = await supabaseClient
+      const { data: deletedRows, error } = await supabaseClient
         .from(card.table)
         .delete()
-        .eq('id', card.id);
+        .eq('id', card.id)
+        .select();
+
       if(error) throw error;
+      if(!deletedRows || deletedRows.length === 0){
+        throw new Error('Aucune ligne supprimée dans la table cible.');
+      }
 
       ALL_CARDS = ALL_CARDS.filter(c => !(c.table === card.table && c.id === card.id));
       renderBoard();
@@ -441,7 +446,7 @@ async function deleteCard(card){
       showToast('Demande supprimée ✨ — le créneau est bien libéré', 'danger');
     }catch(e){
       console.error('Suppression impossible.', e);
-      showToast('Impossible de supprimer cette demande.', 'danger');
+      showToast('Impossible de supprimer cette demande. Vérifie les droits Supabase.', 'danger');
     }
   });
 }
