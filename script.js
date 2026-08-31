@@ -612,7 +612,7 @@ async function submitMariee(){
 
   const hasConflict = await hasBookingConflict(date, '00:00', 'mariee');
   if(hasConflict){
-    statusEl.textContent = "Ce jour est déjà occupé par un autre rendez-vous ou un blocage de planning — merci de choisir une autre date.";
+    statusEl.textContent = "Merci de choisir une autre date.";
     statusEl.style.color = "#d98787";
     return;
   }
@@ -639,10 +639,7 @@ async function submitMariee(){
     statusEl.style.color = "#9bcf9b";
   }catch(e){
     console.error('Demande mariée : envoi Supabase impossible.', e);
-    const msg = /déjà|already|pris|occupied|taken/i.test(String(e?.message || ''))
-      ? 'Désolée, ce créneau est déjà pris. Merci de choisir une autre date.'
-      : 'Une erreur est survenue, merci de réessayer ou de me contacter directement.';
-    statusEl.textContent = msg;
+    statusEl.textContent = 'Une erreur est survenue, merci de réessayer ou de me contacter directement.';
     statusEl.style.color = '#d98787';
     document.querySelectorAll('.mariee-form input,.mariee-form select,.mariee-form textarea,.mariee-form button').forEach(el=>el.disabled=false);
     isSubmittingMariee = false;
@@ -761,10 +758,10 @@ async function submitReservation(){
   const hasConflict = await hasBookingConflict(date, heure, current.type);
   if(hasConflict){
     const message = current.type === 'formation'
-      ? "Ce jour est déjà réservé. Merci de choisir une autre date."
-      : "Ce créneau a déjà été réservé par une autre cliente. Merci de choisir un autre horaire.";
+      ? 'Merci de choisir une autre date.'
+      : 'Merci de choisir un autre horaire.';
     statusEl.textContent = message;
-    statusEl.style.color = "#d98787";
+    statusEl.style.color = '#d98787';
     return;
   }
 
@@ -842,10 +839,7 @@ async function submitReservation(){
     if(submitBtn) submitBtn.disabled = true;
   }catch(e){
     console.error('Réservation : envoi Supabase impossible.', e);
-    const message = /déjà|already|pris|occupied|taken/i.test(String(e?.message || ''))
-      ? 'Désolée, ce créneau a déjà été réservé. Merci de choisir un autre horaire.'
-      : 'Une erreur est survenue lors de l\'envoi, merci de réessayer.';
-    statusEl.textContent = message;
+    statusEl.textContent = 'Une erreur est survenue lors de l\'envoi, merci de réessayer.';
     statusEl.style.color = '#d98787';
     isSubmittingReservation = false;
   }
