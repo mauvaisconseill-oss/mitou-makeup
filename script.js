@@ -815,8 +815,10 @@ async function submitReservation(){
     if(submitBtn) submitBtn.disabled = true;
   }catch(e){
     console.error('Réservation : envoi Supabase impossible.', e);
-    const detail = (e && (e.message || e.error_description || e.details)) ? ` (${e.message || e.error_description || e.details})` : '';
-    statusEl.textContent = "Une erreur est survenue lors de l'envoi, merci de réessayer." + detail;
+    const message = (e && e.message && e.message.includes('déjà pris'))
+      ? "Ce créneau a déjà été réservé par une autre cliente. Merci de choisir un autre horaire."
+      : "Ce créneau a déjà été réservé par une autre cliente. Merci de choisir un autre horaire.";
+    statusEl.textContent = message;
     statusEl.style.color = "#d98787";
     isSubmittingReservation = false;
   }
