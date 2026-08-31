@@ -439,6 +439,29 @@ async function getHorairesDuJour(dateISO){
   return defaut;
 }
 
+function timeToMinutes(value){
+  if(!value || typeof value !== 'string') return 0;
+  const [h, m='00'] = value.split(':').map(Number);
+  return (Number(h) || 0) * 60 + (Number(m) || 0);
+}
+function minutesToTime(totalMinutes){
+  const safe = Math.max(0, Number(totalMinutes) || 0);
+  const h = Math.floor(safe / 60) % 24;
+  const m = safe % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+function getReservationDurationMinutes(type, itemName = ''){
+  const name = String(itemName || '').toLowerCase();
+  if(type === 'formation') return 7 * 60;
+  if(type === 'mariee') return 24 * 60;
+  if(name.includes('jour et nuit') || name.includes('suivie journée')) return 8 * 60;
+  if(name.includes('fiancée') || name.includes('mariée')) return 4 * 60;
+  return 60;
+}
+function intervalsOverlap(startA, endA, startB, endB){
+  return startA < endB && endA > startB;
+}
+
 const heureSel = document.getElementById('heure_rdv');
 async function refreshHeureAvailability(){
   heureSel.innerHTML = '<option value="">Choisir un créneau</option>';
@@ -447,12 +470,31 @@ async function refreshHeureAvailability(){
 
   let blockedSlots = [];
   try{
-    const { data, error } = await supabaseClient
-      .from('creneaux_bloques')
-      .select('heure_debut, heure_fin')
-      .eq('date', date);
-    if(error) throw error;
-    blockedSlots = data || [];
+    const [{ data: blockedData, error: blockedError }, { data: reservationData, error: reservationError }] = await Promise.all([
+      supabaseClient
+        .from('creneaux_bloques')
+        .select('heure_debut, heure_fin')
+        .eq('date', date),
+      supabaseClient
+        .from('reservations')
+        .select('heure_rdv, status, type, prestation')
+        .eq('date_rdv', date)
+        .in('status', ['en attente', 'acceptée'])
+    ]);
+    if(blockedError) throw blockedError;
+    if(reservationError) throw reservationError;
+    blockedSlots = [
+      ...(blockedData || []),
+      ...(reservationData || []).map(r => {
+        const start = timeToMinutes(r.heure_rdv);
+        const duration = getReservationDurationMinutes(r.type || 'slot', r.prestation || '');
+        const end = start + duration;
+        return {
+          heure_debut: r.heure_rdv,
+          heure_fin: minutesToTime(end)
+        };
+      })
+    ];
   }catch(e){
     console.warn('Créneaux bloqués : lecture Supabase indisponible.', e);
   }
@@ -487,7 +529,10 @@ async function refreshHeureAvailability(){
   blockedSlots.forEach(bloc=>{
     Array.from(heureSel.options).forEach(opt=>{
       if(!opt.value) return;
-      if(opt.value >= bloc.heure_debut && opt.value < bloc.heure_fin){
+      const optStart = timeToMinutes(opt.value);
+      const blocStart = timeToMinutes(bloc.heure_debut);
+      const blocEnd = timeToMinutes(bloc.heure_fin);
+      if(intervalsOverlap(optStart, optStart + 60, blocStart, blocEnd)){
         opt.disabled = true;
         opt.textContent = opt.value + ' — déjà pris';
       }
@@ -543,16 +588,31 @@ async function submitMariee(){
     return;
   }
 
+  const hasConflict = await hasBookingConflict(date, '00:00', 'mariee');
+  if(hasConflict){
+    statusEl.textContent = "Ce jour est déjà occupé par un autre rendez-vous ou un blocage de planning — merci de choisir une autre date.";
+    statusEl.style.color = "#d98787";
+    return;
+  }
+
   isSubmittingMariee = true;
   statusEl.textContent = "Envoi en cours…";
   statusEl.style.color = "";
   document.querySelectorAll('.mariee-form input,.mariee-form select,.mariee-form textarea,.mariee-form button').forEach(el=>el.disabled=true);
 
   try{
-    const { error } = await supabaseClient.from('demandes_mariee').insert({
+    const { data: inserted, error } = await supabaseClient.from('demandes_mariee').insert({
       nom, instagram: insta, email, telephone:tel, date_mariage:date, formule, message: msg
-    });
+    }).select('id').single();
     if(error) throw error;
+
+    await supabaseClient.from('creneaux_bloques').insert({
+      date,
+      heure_debut: '00:00',
+      heure_fin: '23:59',
+      reservation_id: inserted ? inserted.id : null
+    });
+
     statusEl.textContent = "Demande envoyée ✓ — je vous recontacte par Instagram, généralement sous 48h.";
     statusEl.style.color = "#9bcf9b";
   }catch(e){
@@ -567,28 +627,92 @@ async function submitMariee(){
 async function hasBookingConflict(date, heure, type){
   if(!supabaseClient || !date) return false;
   try{
-    const { data, error } = await supabaseClient
-      .from('creneaux_bloques')
-      .select('heure_debut, heure_fin')
-      .eq('date', date);
-    if(error) throw error;
+    const [blockedRes, reservationRes] = await Promise.all([
+      supabaseClient
+        .from('creneaux_bloques')
+        .select('heure_debut, heure_fin')
+        .eq('date', date),
+      supabaseClient
+        .from('reservations')
+        .select('heure_rdv, status, type, prestation')
+        .eq('date_rdv', date)
+        .in('status', ['en attente', 'acceptée'])
+    ]);
 
-    if(type === 'formation') return Boolean((data || []).length);
+    const blockedData = blockedRes.data || [];
+    const reservationData = reservationRes.data || [];
+
+    if(type === 'formation' || type === 'mariee'){
+      return Boolean((blockedData || []).length || (reservationData || []).length);
+    }
     if(!heure) return false;
-    const [h, m] = heure.split(':').map(Number);
-    const currentMinutes = h * 60 + m;
 
-    return (data || []).some(bloc => {
+    const requestedStart = timeToMinutes(heure);
+    const requestedDuration = getReservationDurationMinutes(type, current?.name || '');
+    const requestedEnd = requestedStart + requestedDuration;
+
+    const blockedByHour = (blockedData || []).some(bloc => {
       if(!bloc.heure_debut || !bloc.heure_fin) return false;
-      const [startH, startM] = bloc.heure_debut.split(':').map(Number);
-      const [endH, endM] = bloc.heure_fin.split(':').map(Number);
-      const startMinutes = startH * 60 + startM;
-      const endMinutes = endH * 60 + endM;
-      return currentMinutes >= startMinutes && currentMinutes < endMinutes;
+      const start = timeToMinutes(bloc.heure_debut);
+      const end = timeToMinutes(bloc.heure_fin);
+      return intervalsOverlap(requestedStart, requestedEnd, start, end);
+    });
+
+    if(blockedByHour) return true;
+
+    return (reservationData || []).some(row => {
+      if(!row.heure_rdv) return false;
+      const reservationStart = timeToMinutes(row.heure_rdv);
+      const reservationDuration = getReservationDurationMinutes(row.type || 'slot', row.prestation || '');
+      const reservationEnd = reservationStart + reservationDuration;
+      return intervalsOverlap(requestedStart, requestedEnd, reservationStart, reservationEnd);
     });
   }catch(e){
     console.warn('Contrôle de disponibilité : vérification impossible.', e);
     return false;
+  }
+}
+
+async function reserveSlotAtomically(payload){
+  if(!supabaseClient) return { ok: false, reason: 'supabase_unavailable' };
+
+  try{
+    const rpcResult = await supabaseClient.rpc('reserve_slot_if_available', {
+      p_date: payload.date_rdv,
+      p_heure: payload.heure_rdv || null,
+      p_type: payload.type,
+      p_prestation: payload.prestation,
+      p_duration_minutes: getReservationDurationMinutes(payload.type, payload.prestation || ''),
+      p_status: 'en attente',
+      p_payload: {
+        nom: payload.nom,
+        email: payload.email,
+        telephone: payload.telephone,
+        instagram: payload.instagram,
+        total: payload.total,
+        acompte: payload.acompte,
+        capture_paiement: payload.capture_paiement,
+        deplacement: payload.deplacement,
+        adresse: payload.adresse
+      }
+    });
+
+    if(rpcResult && rpcResult.error) {
+      const msg = String(rpcResult.error.message || '').toLowerCase();
+      if(msg.includes('does not exist') || msg.includes('function')) {
+        return { ok: true, fallback: true };
+      }
+      throw rpcResult.error;
+    }
+
+    if(rpcResult && rpcResult.data && typeof rpcResult.data === 'object' && 'ok' in rpcResult.data){
+      return rpcResult.data;
+    }
+
+    return { ok: true, fallback: false };
+  }catch(e){
+    console.warn('Sécurité DB atomique indisponible, on garde le garde-fou front.', e);
+    return { ok: true, fallback: true };
   }
 }
 
@@ -656,8 +780,8 @@ async function submitReservation(){
     if(insertError) throw insertError;
 
     if(current.type === 'slot' && heure){
-      const [hDeb] = heure.split(':').map(Number);
-      const heureFin = `${hDeb + 1}:00`;
+      const duration = getReservationDurationMinutes(current.type, current.name);
+      const heureFin = minutesToTime(timeToMinutes(heure) + duration);
       await supabaseClient.from('creneaux_bloques').insert({
         date: date,
         heure_debut: heure,
@@ -671,6 +795,14 @@ async function submitReservation(){
         heure_fin: '23:59',
         reservation_id: inserted ? inserted.id : null
       });
+    }
+
+    if(date && heure && current.type === 'slot'){
+      const sameHourConflict = await hasBookingConflict(date, heure, current.type);
+      if(sameHourConflict) {
+        await supabaseClient.from('reservations').delete().eq('id', inserted.id);
+        throw new Error('Ce créneau vient d’être pris par une autre cliente.');
+      }
     }
 
     statusEl.textContent = "Demande envoyée ✓ — vous recevrez une réponse dès qu'elle sera traitée.";
