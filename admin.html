@@ -120,6 +120,10 @@
     background:transparent;color:#d98787;border-color:#d98787;flex:1;
   }
   .admin-card-actions .delete:hover{background:rgba(217,135,135,.1)}
+  .admin-card-actions .toggle-hidden{
+    background:transparent;color:var(--muted);border-color:var(--line);flex:1;
+  }
+  .admin-card-actions .toggle-hidden:hover{color:var(--text);border-color:rgba(255,255,255,.38)}
 
   /* ---------- board à 2 colonnes (plus de colonne "Refusées") ---------- */
   @media(min-width:900px){
@@ -199,6 +203,28 @@
   .toast-msg.success .toast-dot{color:#9bcf9b}
   .toast-msg.danger .toast-dot{color:#e3bcbc}
   .toast-msg.info .toast-dot{color:var(--gold)}
+
+  .confirm-modal{
+    position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.76);z-index:9999;padding:20px;
+  }
+  .confirm-modal.show{display:flex}
+  .confirm-modal-box{
+    width:min(420px,100%);background:var(--panel);border:1px solid var(--line);
+    padding:28px 24px;box-shadow:0 22px 50px rgba(0,0,0,.45);
+  }
+  .confirm-modal-title{
+    margin:0 0 10px;color:var(--text);font-family:var(--font-display);
+    font-size:26px;line-height:1.1;
+  }
+  .confirm-modal-text{margin:0 0 20px;color:var(--muted);font-size:13px;line-height:1.6}
+  .confirm-modal-actions{display:flex;gap:10px;justify-content:flex-end}
+  .confirm-modal-actions button{
+    padding:12px 16px;border:1px solid var(--line);font-size:10.5px;
+    letter-spacing:.1em;text-transform:uppercase;cursor:pointer;
+  }
+  .confirm-cancel{background:transparent;color:var(--text)}
+  .confirm-ok{background:var(--text);color:#0a0a09;border-color:var(--text);font-weight:700}
 </style>
 </head>
 <body class="admin-body">
@@ -241,6 +267,7 @@
       <button class="admin-chip" data-filter="slot">Invitée</button>
       <button class="admin-chip" data-filter="formation">Formation</button>
       <button class="admin-chip" data-filter="mariee">Mariée</button>
+      <button class="admin-chip" data-filter="hidden">Masqués <span class="admin-chip-count" id="count-hidden">0</span></button>
     </div>
     <main class="admin-board" id="admin-board">
       <section class="admin-col" data-status="en attente">
@@ -335,6 +362,17 @@
     <div class="admin-card-actions"></div>
   </article>
 </template>
+
+<div class="confirm-modal" id="confirm-modal" aria-hidden="true">
+  <div class="confirm-modal-box">
+    <p class="confirm-modal-title">Es-tu vraiment sûre ?</p>
+    <p class="confirm-modal-text" id="confirm-modal-text">Tu es sur le point de supprimer ce message.</p>
+    <div class="confirm-modal-actions">
+      <button class="confirm-cancel" id="confirm-cancel">Annuler</button>
+      <button class="confirm-ok" id="confirm-ok">Oui, supprimer</button>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>

@@ -530,6 +530,7 @@ async function submitMariee(){
   if(isSubmittingMariee) return;
   const statusEl = document.getElementById('mariee-status');
   const nom = document.getElementById('mar-nom').value.trim();
+  const insta = document.getElementById('mar-insta').value.trim();
   const email = document.getElementById('mar-email').value.trim();
   const tel = document.getElementById('mar-tel').value.trim();
   const date = document.getElementById('mar-date').value;
@@ -549,7 +550,7 @@ async function submitMariee(){
 
   try{
     const { error } = await supabaseClient.from('demandes_mariee').insert({
-      nom, email, telephone:tel, date_mariage:date, formule, message: msg
+      nom, instagram: insta, email, telephone:tel, date_mariage:date, formule, message: msg
     });
     if(error) throw error;
     statusEl.textContent = "Demande envoyée ✓ — je vous recontacte par Instagram, généralement sous 48h.";

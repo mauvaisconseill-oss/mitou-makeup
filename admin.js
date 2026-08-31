@@ -47,6 +47,57 @@ function showToast(message, tone = 'info'){
   }, 2600);
 }
 
+const HIDDEN_CARDS_KEY = 'mitou_hidden_cards_v1';
+function getHiddenCards(){
+  try {
+    return new Set(JSON.parse(localStorage.getItem(HIDDEN_CARDS_KEY) || '[]'));
+  } catch(e) {
+    return new Set();
+  }
+}
+function saveHiddenCards(hiddenSet){
+  localStorage.setItem(HIDDEN_CARDS_KEY, JSON.stringify([...hiddenSet]));
+}
+function cardKey(card){
+  return `${card.table}:${card.id}`;
+}
+function toggleCardHidden(card){
+  const hidden = getHiddenCards();
+  const key = cardKey(card);
+  if(hidden.has(key)) hidden.delete(key); else hidden.add(key);
+  saveHiddenCards(hidden);
+  renderBoard();
+}
+function showConfirmDialog(message, onConfirm){
+  const modal = document.getElementById('confirm-modal');
+  const text = document.getElementById('confirm-modal-text');
+  const okBtn = document.getElementById('confirm-ok');
+  const cancelBtn = document.getElementById('confirm-cancel');
+
+  if(!modal || !text || !okBtn || !cancelBtn) return;
+
+  text.textContent = message;
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden', 'false');
+
+  const finish = () => {
+    modal.classList.remove('show');
+    modal.setAttribute('aria-hidden', 'true');
+    okBtn.onclick = null;
+    cancelBtn.onclick = null;
+    modal.onclick = null;
+  };
+
+  okBtn.onclick = () => {
+    finish();
+    onConfirm();
+  };
+  cancelBtn.onclick = finish;
+  modal.onclick = (event) => {
+    if(event.target === modal) finish();
+  };
+}
+
 /* ---------- connexion (vraie auth Supabase) ---------- */
 const loginScreen = document.getElementById('admin-login');
 const dashScreen  = document.getElementById('admin-dash');
@@ -183,7 +234,7 @@ async function loadData(){
         id:r.id,
         type:'mariee',
         typeLabel:'Mariée',
-        name:r.nom, email:r.email, tel:r.telephone, insta:'',
+        name:r.nom, email:r.email, tel:r.telephone, insta:r.instagram || '',
         service:r.formule,
         date:r.date_mariage, heure:'',
         total:'', acompte:'',
@@ -208,24 +259,32 @@ function fmtDate(d){
 }
 
 function renderBoard(){
-  const filtered = activeFilter === 'all' ? ALL_CARDS : ALL_CARDS.filter(c=>c.type===activeFilter);
+  const hidden = getHiddenCards();
+  const hiddenCount = hidden.size;
+  const visibleCards = ALL_CARDS.filter(c => !hidden.has(cardKey(c)));
+  const filtered = activeFilter === 'all'
+    ? visibleCards
+    : activeFilter === 'hidden'
+      ? ALL_CARDS.filter(c => hidden.has(cardKey(c)))
+      : visibleCards.filter(c => c.type === activeFilter);
 
-  // "refusée" n'existe plus dans le flux, mais si d'anciennes lignes
-  // en base ont encore ce statut, on les range avec "en attente" pour
-  // ne rien perdre de vue.
   const groups = { 'en attente':[], 'acceptée':[] };
   filtered.forEach(c=>{
     const s = c.status === 'acceptée' ? 'acceptée' : 'en attente';
     groups[s].push(c);
   });
 
+  const hiddenCounter = document.getElementById('count-hidden');
+  if(hiddenCounter) hiddenCounter.textContent = hiddenCount;
+
   renderColumn('col-attente', 'count-attente', groups['en attente']);
   renderColumn('col-acceptee', 'count-acceptee', groups['acceptée']);
 
   document.getElementById('admin-stats').innerHTML = `
-    <div class="admin-stat"><span class="admin-stat-num">${ALL_CARDS.length}</span><span class="admin-stat-label">Total</span></div>
+    <div class="admin-stat"><span class="admin-stat-num">${visibleCards.length}</span><span class="admin-stat-label">Total</span></div>
     <div class="admin-stat"><span class="admin-stat-num">${groups['en attente'].length}</span><span class="admin-stat-label">En attente</span></div>
     <div class="admin-stat"><span class="admin-stat-num">${groups['acceptée'].length}</span><span class="admin-stat-label">Acceptées</span></div>
+    <div class="admin-stat"><span class="admin-stat-num">${hiddenCount}</span><span class="admin-stat-label">Masqués</span></div>
   `;
 }
 
@@ -264,13 +323,26 @@ function renderColumn(bodyId, countId, list){
     }
 
     const actions = node.querySelector('.admin-card-actions');
+    const hidden = getHiddenCards();
+    const isHidden = hidden.has(cardKey(card));
+
     if(card.status === 'acceptée'){
-      actions.innerHTML = `<button class="revert">Remettre en attente</button><button class="delete">Supprimer</button>`;
+      actions.innerHTML = `
+        <button class="revert">Remettre en attente</button>
+        <button class="toggle-hidden">${isHidden ? 'Afficher' : 'Masquer'}</button>
+        <button class="delete">Supprimer</button>
+      `;
       actions.querySelector('.revert').addEventListener('click', ()=>updateStatus(card, 'en attente'));
+      actions.querySelector('.toggle-hidden').addEventListener('click', ()=>toggleCardHidden(card));
       actions.querySelector('.delete').addEventListener('click', ()=>deleteCard(card));
     } else {
-      actions.innerHTML = `<button class="accept">Accepter</button><button class="delete">Supprimer</button>`;
+      actions.innerHTML = `
+        <button class="accept">Accepter</button>
+        <button class="toggle-hidden">${isHidden ? 'Afficher' : 'Masquer'}</button>
+        <button class="delete">Supprimer</button>
+      `;
       actions.querySelector('.accept').addEventListener('click', ()=>updateStatus(card, 'acceptée'));
+      actions.querySelector('.toggle-hidden').addEventListener('click', ()=>toggleCardHidden(card));
       actions.querySelector('.delete').addEventListener('click', ()=>deleteCard(card));
     }
 
@@ -328,47 +400,50 @@ async function updateStatus(card, newStatus){
 /* ---------- suppression d'une demande + libération du créneau ---------- */
 async function deleteCard(card){
   const label = card.type === 'mariee' ? 'cette demande mariée' : 'cette demande';
-  if(!confirm(`Supprimer définitivement ${label} ? Cette action est irréversible.`)) return;
+  showConfirmDialog(`Es-tu vraiment sûre de supprimer ${label} ? Cette action est irréversible.`, async () => {
+    try{
+      if(card.table === 'reservations'){
+        try{
+          await supabaseClient
+            .from('creneaux_bloques')
+            .delete()
+            .eq('reservation_id', card.id);
 
-  try{
-    // Libérer le créneau bloqué si c'était une réservation "invitée"
-    if(card.table === 'reservations'){
-      await supabaseClient
-        .from('creneaux_bloques')
+          if(card.date){
+            await supabaseClient
+              .from('creneaux_bloques')
+              .delete()
+              .eq('date', card.date)
+              .eq('heure_debut', card.heure || '10:00');
+          }
+
+          if(card.type === 'formation' && card.date){
+            await supabaseClient
+              .from('creneaux_bloques')
+              .delete()
+              .eq('date', card.date)
+              .eq('heure_debut', '00:00');
+          }
+        } catch (e) {
+          console.warn('libération créneaux bloqués ignorée : table absente ou erreur de suppression', e);
+        }
+      }
+
+      const { error } = await supabaseClient
+        .from(card.table)
         .delete()
-        .eq('reservation_id', card.id);
+        .eq('id', card.id);
+      if(error) throw error;
 
-      if(card.date){
-        await supabaseClient
-          .from('creneaux_bloques')
-          .delete()
-          .eq('date', card.date)
-          .eq('heure_debut', card.heure || '10:00');
-      }
-
-      if(card.type === 'formation' && card.date){
-        await supabaseClient
-          .from('creneaux_bloques')
-          .delete()
-          .eq('date', card.date)
-          .eq('heure_debut', '00:00');
-      }
+      ALL_CARDS = ALL_CARDS.filter(c => !(c.table === card.table && c.id === card.id));
+      renderBoard();
+      await refreshAllData();
+      showToast('Demande supprimée ✨ — le créneau est bien libéré', 'danger');
+    }catch(e){
+      console.error('Suppression impossible.', e);
+      showToast('Impossible de supprimer cette demande.', 'danger');
     }
-
-    const { error } = await supabaseClient
-      .from(card.table)
-      .delete()
-      .eq('id', card.id);
-    if(error) throw error;
-
-    ALL_CARDS = ALL_CARDS.filter(c => !(c.table === card.table && c.id === card.id));
-    renderBoard();
-    await refreshAllData();
-    showToast('Demande supprimée ✨ — le créneau est bien libéré', 'danger');
-  }catch(e){
-    console.error('Suppression impossible.', e);
-    showToast('Impossible de supprimer cette demande.', 'danger');
-  }
+  });
 }
 
 /* ============================================================
