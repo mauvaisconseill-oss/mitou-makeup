@@ -17,13 +17,11 @@ try{
   console.warn('Supabase : initialisation impossible, le site continue sans.', e);
 }
 
-/* ---------- menu mobile ---------- */
 const menuBtn = document.querySelector('.menu-btn');
 const mobileMenu = document.querySelector('.mobile-menu');
 menuBtn.addEventListener('click',()=>mobileMenu.classList.toggle('open'));
 document.querySelectorAll('.mobile-menu a').forEach(a=>a.addEventListener('click',()=>mobileMenu.classList.remove('open')));
 
-/* ---------- reveal ---------- */
 const observer = new IntersectionObserver(entries=>{
   entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('show'); observer.unobserve(e.target); } });
 },{threshold:.12});
@@ -33,7 +31,6 @@ setTimeout(()=>{
   document.querySelectorAll('.reveal:not(.show)').forEach(el=>el.classList.add('show'));
 }, 1500);
 
-/* ---------- catalogue ---------- */
 const TONES = {
   softglam:   {name:"Makeup Soft Glam", price:"90€", dep:30, color:"#c6b6a3", desc:"Un teint lumineux, un regard structuré en douceur — parfait en journée comme en soirée. Avec ou sans faux cils."},
   sophistique:{name:"Makeup Sophistiqué", price:"95€", dep:30, color:"#332628", desc:"Le look le plus travaillé : finitions soignées, détails travaillés et mise en beauté complète. Avec ou sans faux cils."}
@@ -50,7 +47,6 @@ const FORMATIONS = [
   {name:"Formation 3 jours", price:"750€", dep:100, desc:"6 looks répartis sur 3 jours, parcours complet de perfectionnement, 10h-17h chaque jour.", bullets:["Parcours nude / cut crease / sophistiqué","Préparation à la diversité des clientes","Gestion du matériel"], note:"Acompte 100€ non remboursable · Modèle 15€/séance"}
 ];
 
-/* ---------- triptyque interactif ---------- */
 let activeTone = null;
 
 function applyTone(tone, commit){
@@ -94,7 +90,6 @@ if(triptychEl){
   });
 }
 
-/* ---------- timeline mariée ---------- */
 const tlWrap = document.getElementById('timeline');
 const tlDetail = document.getElementById('tl-detail');
 MARIEE.forEach((m, i)=>{
@@ -110,7 +105,6 @@ MARIEE.forEach((m, i)=>{
 });
 tlDetail.innerHTML = `<b>${MARIEE[0].name}</b> — ${MARIEE[0].detail}<br><span style="opacity:.75">${MARIEE[0].deplacement}</span>`;
 
-/* ---------- accordion formations ---------- */
 const accWrap = document.getElementById('accordion');
 FORMATIONS.forEach((f, i)=>{
   const item = document.createElement('div');
@@ -135,7 +129,6 @@ FORMATIONS.forEach((f, i)=>{
   accWrap.appendChild(item);
 });
 
-/* ---------- avis (Supabase) ---------- */
 let AVIS = [
   {nom:"Aïcha",note:5,service:"Makeup mariée",commentaire:"Un rendu naturel et tenu toute la journée, exactement le look que je voulais."},
   {nom:"Lina",note:5,service:"Makeup sophistiqué",commentaire:"Le cut crease était d'une précision incroyable."},
@@ -197,7 +190,6 @@ async function postAvis(){
   closeModal();
 }
 
-/* ---------- wizard ---------- */
 let current = null;
 const ALL_ITEMS = [
   ...Object.values(TONES).map(t=>({name:t.name, price:t.price, dep:t.dep, type:'slot', desc:t.desc})),
@@ -318,8 +310,7 @@ function deplacementMontant(){
 }
 function prixNumerique(str){ const n = parseFloat(String(str).replace('€','').replace(',','.')); return isNaN(n)?0:n; }
 
-/* ---------- Déplacement : géolocalisation (Nominatim + Haversine) ---------- */
-const ORIGIN = { lat: 48.8566, lon: 2.3522 }; // placeholder — remplacer par la vraie adresse
+const ORIGIN = { lat: 48.8566, lon: 2.3522 };
 const IDF_DEPTS = ['75','77','78','91','92','93','94','95'];
 let depState = { actif:false, montant:0, label:'', personnes:'3' };
 
@@ -421,10 +412,6 @@ async function calcDist(){
   btn.disabled = false;
 }
 
-/* ============================================================
-   HORAIRES — branchés sur planning_config / planning_overrides
-   (configurés depuis l'admin, plus de valeurs fixes en dur)
-   ============================================================ */
 const JOURS_INDEX = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
 let PLANNING_CACHE = null;
 
@@ -521,7 +508,6 @@ async function refreshHeureAvailability(){
     console.warn('Créneaux bloqués : lecture Supabase indisponible.', e);
   }
 
-  // Les formations prennent toute la journée et doivent bloquer le jour entier.
   if(current && current.type === 'formation'){
     if(blockedSlots.length){
       heureSel.innerHTML = '<option value="">Ce jour est déjà réservé — choisissez une autre date</option>';
@@ -592,7 +578,6 @@ function renderSummary(){
   btn.textContent = `Payer l'acompte de ${current.dep}€ via PayPal`;
 }
 
-/* ---------- demande mariée (Supabase) ---------- */
 async function submitMariee(){
   if(isSubmittingMariee) return;
   const statusEl = document.getElementById('mariee-status');
@@ -695,50 +680,6 @@ async function hasBookingConflict(date, heure, type){
   }
 }
 
-async function reserveSlotAtomically(payload){
-  if(!supabaseClient) return { ok: false, reason: 'supabase_unavailable' };
-
-  try{
-    const rpcResult = await supabaseClient.rpc('reserve_slot_if_available', {
-      p_date: payload.date_rdv,
-      p_heure: payload.heure_rdv || null,
-      p_type: payload.type,
-      p_prestation: payload.prestation,
-      p_duration_minutes: getReservationDurationMinutes(payload.type, payload.prestation || ''),
-      p_status: 'en attente',
-      p_payload: {
-        nom: payload.nom,
-        email: payload.email,
-        telephone: payload.telephone,
-        instagram: payload.instagram,
-        total: payload.total,
-        acompte: payload.acompte,
-        capture_paiement: payload.capture_paiement,
-        deplacement: payload.deplacement,
-        adresse: payload.adresse
-      }
-    });
-
-    if(rpcResult && rpcResult.error) {
-      const msg = String(rpcResult.error.message || '').toLowerCase();
-      if(msg.includes('does not exist') || msg.includes('function')) {
-        return { ok: true, fallback: true };
-      }
-      throw rpcResult.error;
-    }
-
-    if(rpcResult && rpcResult.data && typeof rpcResult.data === 'object' && 'ok' in rpcResult.data){
-      return rpcResult.data;
-    }
-
-    return { ok: true, fallback: false };
-  }catch(e){
-    console.warn('Sécurité DB atomique indisponible, on garde le garde-fou front.', e);
-    return { ok: true, fallback: true };
-  }
-}
-
-/* ---------- réservation (Supabase + Storage pour la capture PayPal) ---------- */
 async function submitReservation(){
   if(isSubmittingReservation) return;
   const statusEl = document.getElementById('submit-status');
@@ -819,14 +760,6 @@ async function submitReservation(){
         heure_fin: '23:59',
         reservation_id: inserted ? inserted.id : null
       });
-    }
-
-    if(date && heure && current.type === 'slot'){
-      const sameHourConflict = await hasBookingConflict(date, heure, current.type);
-      if(sameHourConflict) {
-        await supabaseClient.from('reservations').delete().eq('id', inserted.id);
-        throw new Error('Ce créneau vient d’être pris par une autre cliente.');
-      }
     }
 
     statusEl.textContent = "Demande envoyée ✓ — vous recevrez une réponse dès qu'elle sera traitée.";
