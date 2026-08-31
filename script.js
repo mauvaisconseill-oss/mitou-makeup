@@ -236,16 +236,25 @@ function selectItem(item){
 }
 
 function validateStep1(){
-  if(!current){ alert("Choisissez d'abord une prestation à l'étape 1."); return false; }
+  if(!current){
+    showInlineStatus('submit-status', "Choisissez d'abord une prestation à l'étape 1.", 'error');
+    return false;
+  }
   return true;
 }
 function validateStep2(){
   const date = document.getElementById('date_rdv').value;
   const heure = document.getElementById('heure_rdv').value;
-  if(!date){ alert("Merci de choisir une date avant de continuer."); return false; }
-  if(current.type === 'slot' && !heure){ alert("Merci de choisir un créneau horaire avant de continuer."); return false; }
+  if(!date){
+    showInlineStatus('submit-status', 'Merci de choisir une date avant de continuer.', 'error');
+    return false;
+  }
+  if(current.type === 'slot' && !heure){
+    showInlineStatus('submit-status', 'Merci de choisir un créneau horaire avant de continuer.', 'error');
+    return false;
+  }
   if(current.type === 'slot' && depState.actif && !document.getElementById('dep-address').value.trim()){
-    alert("Merci de renseigner votre adresse complète pour le déplacement.");
+    showInlineStatus('submit-status', 'Merci de renseigner votre adresse complète pour le déplacement.', 'error');
     return false;
   }
   return true;
@@ -253,11 +262,24 @@ function validateStep2(){
 function validateStep3(){
   const nom = document.getElementById('nom').value.trim();
   const email = document.getElementById('email').value.trim();
-  if(!nom){ alert("Merci de renseigner votre nom avant de continuer."); return false; }
-  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ alert("Merci de renseigner un e-mail valide avant de continuer."); return false; }
+  if(!nom){
+    showInlineStatus('submit-status', 'Merci de renseigner votre nom avant de continuer.', 'error');
+    return false;
+  }
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    showInlineStatus('submit-status', 'Merci de renseigner un e-mail valide avant de continuer.', 'error');
+    return false;
+  }
   return true;
 }
 const STEP_VALIDATORS = { 2:validateStep1, 3:validateStep2, 4:validateStep3 };
+
+function showInlineStatus(elementId, message, tone = 'info'){
+  const el = document.getElementById(elementId);
+  if(!el) return;
+  el.textContent = message;
+  el.style.color = tone === 'error' ? '#d98787' : tone === 'success' ? '#9bcf9b' : '';
+}
 
 function nextStep(n){
   const validate = STEP_VALIDATORS[n];
@@ -286,7 +308,7 @@ document.querySelectorAll('.wz-step-tab').forEach(t=>t.addEventListener('click',
   if(n <= maxStepUnlocked){
     goStep(n);
   } else {
-    alert("Merci de compléter l'étape en cours avant de passer à la suivante.");
+    showInlineStatus('submit-status', 'Merci de compléter l\'étape en cours avant de passer à la suivante.', 'error');
   }
 }));
 
