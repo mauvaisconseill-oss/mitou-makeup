@@ -222,6 +222,13 @@ nav{display:none}
 .modal-actions button{flex:1;padding:12px;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
 .modal-cancel{border:1px solid #2c2a26}
 .modal-submit{background:var(--text);color:#0a0a09;font-weight:600}
+
+.booking-modal-overlay{z-index:10000}
+.booking-modal-box{max-width:420px;width:min(420px,calc(100vw - 32px));background:rgba(20,20,20,.94);border:1px solid rgba(255,255,255,.12);box-shadow:0 18px 60px rgba(0,0,0,.45);padding:22px 22px 18px;border-radius:18px;color:var(--text);text-align:center}
+.booking-modal-title{margin:0 0 12px;font-family:var(--font-display);font-size:20px;font-weight:500;color:var(--text)}
+.booking-modal-text{margin:0 0 22px;color:var(--muted);font-size:14px;line-height:1.7}
+.booking-modal-button{border:none;border-radius:999px;padding:12px 26px;background:linear-gradient(135deg, #dfe8f8, #a9c3ff);color:#101218;font-weight:700;font-size:13px;cursor:pointer;min-width:110px;transition:transform .2s ease, filter .2s ease}
+.booking-modal-button:hover{transform:translateY(-1px);filter:brightness(1.04)}
 .wizard{border-top:1px solid var(--line);padding:74px 5%}
 .wz-steps{display:flex;position:relative;margin-bottom:54px;padding-top:6px}
 .wz-steps:before{content:"";position:absolute;top:10px;left:16px;right:16px;height:1px;background:var(--line);z-index:0}
