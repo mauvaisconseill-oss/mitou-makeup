@@ -179,13 +179,12 @@ nav{display:none}
 .tl-stop .tl-price{font-size:13px;color:var(--muted);margin-top:6px;font-variant-numeric:oldstyle-nums}
 .tl-detail{margin-top:26px;border:1px solid var(--line);padding:22px;max-width:560px;font-size:13px;color:var(--muted);line-height:1.8}
 .tl-detail b{color:var(--text);font-weight:600}
-.mariee-form{max-width:460px}
-.mariee-form label{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
-.mariee-form label:first-of-type{margin-top:0}
-.mariee-form input,.mariee-form select,.mariee-form textarea{width:100%;background:transparent;border:1px solid #2c2a26;color:var(--text);padding:12px 13px;font-size:13.5px;outline:none;font-family:var(--font-sans)}
-.mariee-form input:focus,.mariee-form select:focus,.mariee-form textarea:focus{border-color:rgba(255,255,255,.35)}
-.mariee-form textarea{min-height:70px;resize:vertical}
-.mariee-form option{color:#111}
+.mariee-contact{max-width:520px;margin-top:30px}
+.mariee-contact-intro{color:var(--muted);font-size:13.5px;line-height:1.8;margin-bottom:20px}
+.mariee-contact-btn{display:inline-block}
+.mariee-contact .slot-note{margin-top:14px;line-height:1.6}
+.info-chip a,footer a{transition:color .25s ease}
+.info-chip a:hover,footer a:hover{color:var(--text)}
 .accordion{border-top:1px solid var(--line)}
 .acc-item{border-bottom:1px solid var(--line)}
 .acc-head{display:flex;justify-content:space-between;align-items:center;padding:22px 0;cursor:pointer;gap:16px}

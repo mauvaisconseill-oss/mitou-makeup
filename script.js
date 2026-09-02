@@ -1,7 +1,6 @@
 const PAYPAL_HANDLE = "Mitoumakeup";
 const IG_HANDLE = "mitou_makeup";
 let isSubmittingReservation = false;
-let isSubmittingMariee = false;
 
 const SUPABASE_URL = "https://cayadmbypnfukskotrma.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNheWFkbWJ5cG5mdWtza290cm1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0OTcxODIsImV4cCI6MjEwMzA3MzE4Mn0._j5jQ1kXYOz5NhJLBsRlGXI8HEBRMQCo3ka3QrjYUe0";
@@ -576,59 +575,6 @@ function renderSummary(){
   const btn = document.getElementById('paypal-btn');
   btn.href = `https://paypal.me/${PAYPAL_HANDLE}/${current.dep}`;
   btn.textContent = `Payer l'acompte de ${current.dep}€ via PayPal`;
-}
-
-async function submitMariee(){
-  if(isSubmittingMariee) return;
-  const statusEl = document.getElementById('mariee-status');
-  const nom = document.getElementById('mar-nom').value.trim();
-  const insta = document.getElementById('mar-insta').value.trim();
-  const email = document.getElementById('mar-email').value.trim();
-  const tel = document.getElementById('mar-tel').value.trim();
-  const date = document.getElementById('mar-date').value;
-  const formule = document.getElementById('mar-formule').value;
-  const msg = document.getElementById('mar-msg').value.trim();
-
-  if(!nom || !email || !date || !formule){
-    statusEl.textContent = "Merci de renseigner au minimum : nom, e-mail, date du mariage et formule.";
-    statusEl.style.color = "#d98787";
-    return;
-  }
-
-  const hasConflict = await hasBookingConflict(date, '00:00', 'mariee');
-  if(hasConflict){
-    statusEl.textContent = "Merci de choisir une autre date.";
-    statusEl.style.color = "#d98787";
-    return;
-  }
-
-  isSubmittingMariee = true;
-  statusEl.textContent = "Envoi en cours…";
-  statusEl.style.color = "";
-  document.querySelectorAll('.mariee-form input,.mariee-form select,.mariee-form textarea,.mariee-form button').forEach(el=>el.disabled=true);
-
-  try{
-    const { data: inserted, error } = await supabaseClient.from('demandes_mariee').insert({
-      nom, instagram: insta, email, telephone:tel, date_mariage:date, formule, message: msg
-    }).select('id').single();
-    if(error) throw error;
-
-    await supabaseClient.from('creneaux_bloques').insert({
-      date,
-      heure_debut: '00:00',
-      heure_fin: '23:59',
-      reservation_id: inserted ? inserted.id : null
-    });
-
-    statusEl.textContent = "Demande envoyée ✓ — je vous recontacte par Instagram, généralement sous 48h.";
-    statusEl.style.color = "#9bcf9b";
-  }catch(e){
-    console.error('Demande mariée : envoi Supabase impossible.', e);
-    statusEl.textContent = 'Une erreur est survenue, merci de réessayer ou de me contacter directement.';
-    statusEl.style.color = '#d98787';
-    document.querySelectorAll('.mariee-form input,.mariee-form select,.mariee-form textarea,.mariee-form button').forEach(el=>el.disabled=false);
-    isSubmittingMariee = false;
-  }
 }
 
 async function hasBookingConflict(date, heure, type){
