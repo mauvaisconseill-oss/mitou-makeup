@@ -173,7 +173,7 @@ nav{display:none}
   .portfolio-grid .portfolio-frame{aspect-ratio:auto}
   .portfolio-grid .portfolio-frame.tall{grid-row:auto}
   .portfolio-grid .portfolio-frame-inner{aspect-ratio:4/3}
-  .portfolio-grid .portfolio-frame-inner > img{object-fit:contain;background:#000}
+  .portfolio-grid .portfolio-frame-inner > img{object-fit:cover;background:transparent}
   .portfolio-frame-inner:before{font-size:min(34vw,150px)}
 }
 @media(min-width:1100px){
