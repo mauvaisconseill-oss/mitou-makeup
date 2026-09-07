@@ -169,9 +169,10 @@ nav{display:none}
 .portfolio-frame-inner{min-height:0}
 .portfolio-frame-inner:before{font-size:min(24vw,120px)}
 @media(min-width:700px){
-  .portfolio-grid{grid-template-columns:repeat(3,1fr);grid-auto-rows:220px;gap:14px}
+  .portfolio-grid{grid-template-columns:repeat(2,1fr);grid-auto-rows:auto;gap:14px}
   .portfolio-grid .portfolio-frame{aspect-ratio:auto}
-  .portfolio-grid .portfolio-frame.tall{grid-row:span 2}
+  .portfolio-grid .portfolio-frame.tall{grid-row:auto}
+  .portfolio-grid .portfolio-frame-inner{aspect-ratio:4/3}
   .portfolio-frame-inner:before{font-size:min(34vw,150px)}
 }
 .info-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 14px;padding-top:26px;border-top:1px solid var(--line)}
