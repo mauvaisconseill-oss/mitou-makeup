@@ -179,6 +179,11 @@ nav{display:none}
 .info-chip b{display:inline-block;color:var(--text);font-weight:600;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;margin-right:8px}
 .info-sep{color:var(--gold-soft);font-size:12px}
 @media(max-width:699px){
+  header{
+    background:linear-gradient(180deg,rgba(10,10,9,.94) 0%,rgba(10,10,9,.64) 52%,rgba(10,10,9,0) 100%);
+    border-bottom-color:transparent;
+    backdrop-filter:none;
+  }
   .hero{min-height:88vh;overflow:hidden;padding-top:90px;padding-bottom:70px;background:#0a0a09}
   .hero-portrait{display:block;position:absolute;inset:0;z-index:0;overflow:hidden;opacity:.74}
   .hero-portrait:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,10,9,.28) 0%,rgba(10,10,9,.68) 56%,#0a0a09 100%)}
