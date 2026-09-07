@@ -184,6 +184,11 @@ nav{display:none}
     border-bottom-color:transparent;
     backdrop-filter:none;
   }
+  .mobile-menu{
+    background:transparent;
+    border-bottom:0;
+    backdrop-filter:none;
+  }
   .hero{min-height:88vh;overflow:hidden;padding-top:90px;padding-bottom:70px;background:#0a0a09}
   .hero-portrait{display:block;position:absolute;inset:0;z-index:0;overflow:hidden;opacity:.74}
   .hero-portrait:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,10,9,.28) 0%,rgba(10,10,9,.68) 56%,#0a0a09 100%)}
