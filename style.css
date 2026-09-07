@@ -181,12 +181,12 @@ nav{display:none}
 @media(max-width:699px){
   header{
     background:linear-gradient(180deg,rgba(10,10,9,.94) 0%,rgba(10,10,9,.64) 52%,rgba(10,10,9,0) 100%);
-    border-bottom-color:#0a0a09;
+    border:none;
     backdrop-filter:none;
   }
   .mobile-menu{
     background:var(--bg);
-    border:1px solid #0a0a09;
+    border:none !important;
     backdrop-filter:none;
   }
   .hero{min-height:88vh;overflow:hidden;padding-top:90px;padding-bottom:70px;background:#0a0a09}
