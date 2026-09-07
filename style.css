@@ -185,8 +185,8 @@ nav{display:none}
     backdrop-filter:none;
   }
   .mobile-menu{
-    background:transparent;
-    border-bottom:0;
+    background:var(--bg);
+    border:0;
     backdrop-filter:none;
   }
   .hero{min-height:88vh;overflow:hidden;padding-top:90px;padding-bottom:70px;background:#0a0a09}
