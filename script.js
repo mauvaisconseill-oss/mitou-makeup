@@ -32,7 +32,7 @@ setTimeout(()=>{
 
 const TONES = {
   softglam:   {name:"Makeup Soft Glam", price:"90€", dep:30, color:"#c6b6a3", desc:"Un teint lumineux, un regard structuré en douceur — parfait en journée comme en soirée. Avec ou sans faux cils."},
-  sophistique:{name:"Makeup Sophistiqué", price:"95€", dep:30, color:"#332628", desc:"Le look le plus travaillé : finitions soignées, détails travaillés et mise en beauté complète. Avec ou sans faux cils."}
+  sophistique:{name:"Makeup Sophistiqué", price:"95€", dep:30, color:"#d8cfc0", desc:"Le look le plus travaillé : finitions soignées, détails travaillés et mise en beauté complète. Avec ou sans faux cils."}
 };
 const MARIEE = [
   {name:"Fiancée", price:"200€", dep:60, detail:"Un maquillage complet pour les moments qui précèdent le grand jour — essai possible en amont.", deplacement:"Déplacement : de 60€ à 80€ selon la distance."},
