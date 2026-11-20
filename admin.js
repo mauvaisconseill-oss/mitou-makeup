@@ -559,14 +559,16 @@ async function saveHoraires(){
   });
   if(validationInvalide) return;
 
-  const { data: updatedRows, error } = await supabaseClient.from('planning_config')
-    .update({ jours: nouveauxJours, updated_at: new Date().toISOString() })
-    .eq('id', 1)
+  const { data: savedRows, error } = await supabaseClient.from('planning_config')
+    .upsert(
+      { id: 1, jours: nouveauxJours, updated_at: new Date().toISOString() },
+      { onConflict: 'id' }
+    )
     .select('id');
 
   if(error){ showToast(planningWriteError(error, "mise à jour des horaires récurrents"), "danger"); return; }
-  if(!updatedRows || updatedRows.length === 0){
-    showToast("Impossible d'enregistrer : la ligne planning_config id=1 n'existe pas", "danger");
+  if(!savedRows || savedRows.length === 0){
+    showToast("Impossible d'enregistrer les horaires", "danger");
     return;
   }
   horairesActuels = nouveauxJours;
