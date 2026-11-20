@@ -474,7 +474,7 @@ async function loadPlanning(){
 async function loadHoraires(){
   const { data, error } = await supabaseClient.from('planning_config').select('*').eq('id', 1).maybeSingle();
   if(error || !data){
-    alert("Impossible de charger les horaires. Vérifie que la table planning_config existe (script SQL).");
+    showToast("Impossible de charger les horaires", "danger");
     return;
   }
   horairesActuels = data.jours || {};
@@ -517,26 +517,35 @@ document.getElementById('save-horaires-btn').addEventListener('click', saveHorai
 
 async function saveHoraires(){
   const nouveauxJours = {};
+  let validationInvalide = false;
   JOURS_SEMAINE.forEach(j => {
     const ouvert = document.querySelector(`#jours-list [data-jour="${j.key}"] .jour-ouvert-check`).checked;
     if(ouvert){
+      const debut = document.getElementById('debut-'+j.key).value || '10:00';
+      const fin = document.getElementById('fin-'+j.key).value || '19:00';
+      if(debut >= fin){
+        showToast(`L'heure de fin doit être après l'heure de début pour ${j.label}`, "danger");
+        validationInvalide = true;
+        return;
+      }
       nouveauxJours[j.key] = {
         ouvert: true,
-        debut: document.getElementById('debut-'+j.key).value || '10:00',
-        fin: document.getElementById('fin-'+j.key).value || '19:00'
+        debut,
+        fin
       };
     } else {
       nouveauxJours[j.key] = { ouvert: false };
     }
   });
+  if(validationInvalide) return;
 
   const { error } = await supabaseClient.from('planning_config')
     .update({ jours: nouveauxJours, updated_at: new Date().toISOString() })
     .eq('id', 1);
 
-  if(error){ alert("Erreur lors de l'enregistrement des horaires."); return; }
+  if(error){ showToast("Erreur lors de l'enregistrement des horaires", "danger"); return; }
   horairesActuels = nouveauxJours;
-  showToast("Horaires enregistrés");
+  showToast("Horaires enregistrés", "success");
   await loadSemaine();
 }
 
@@ -629,6 +638,7 @@ function renderSemaineJours(debutSemaine, overrides){
         <input type="time" id="sem-fin-${dateISO}" value="${fin}">
       </div>
       <span class="jour-ferme-label" id="sem-ferme-${dateISO}" style="${ouvert ? 'display:none' : ''}">Fermé</span>
+      <button class="btn-save-jour" data-save="${dateISO}">Enregistrer</button>
       ${estOverride ? `<button class="btn-reset-jour" data-reset="${dateISO}">Revenir à l'horaire habituel</button>` : ''}
     </div>`;
   }).join('');
@@ -644,10 +654,11 @@ function renderSemaineJours(debutSemaine, overrides){
     const check = document.querySelector(`[data-date="${dateISO}"] .sem-ouvert-check`);
     check.checked = ouvert;
     check.addEventListener('change', ()=>onSemaineJourChange(dateISO));
-    document.getElementById('sem-debut-'+dateISO).addEventListener('change', ()=>onSemaineJourChange(dateISO));
-    document.getElementById('sem-fin-'+dateISO).addEventListener('change', ()=>onSemaineJourChange(dateISO));
   });
 
+  el.querySelectorAll('[data-save]').forEach(btn=>{
+    btn.addEventListener('click', ()=>sauvegarderOverride(btn.dataset.save, btn));
+  });
   el.querySelectorAll('[data-reset]').forEach(btn=>{
     btn.addEventListener('click', ()=>resetJourSemaine(btn.dataset.reset));
   });
@@ -658,29 +669,45 @@ function onSemaineJourChange(dateISO){
   const ouvert = check.checked;
   document.getElementById('sem-heures-'+dateISO).style.display = ouvert ? 'flex' : 'none';
   document.getElementById('sem-ferme-'+dateISO).style.display = ouvert ? 'none' : 'inline';
-  sauvegarderOverride(dateISO);
 }
 
-async function sauvegarderOverride(dateISO){
+async function sauvegarderOverride(dateISO, button){
   const check = document.querySelector(`[data-date="${dateISO}"] .sem-ouvert-check`);
   const ouvert = check.checked;
   const debut = ouvert ? (document.getElementById('sem-debut-'+dateISO).value || '10:00') : null;
   const fin = ouvert ? (document.getElementById('sem-fin-'+dateISO).value || '19:00') : null;
 
+  if(ouvert && debut >= fin){
+    showToast("L'heure de fin doit être après l'heure de début", "danger");
+    return;
+  }
+  if(button) button.disabled = true;
+
   const { error } = await supabaseClient.from('planning_overrides')
     .upsert({ date: dateISO, ouvert, debut, fin, updated_at: new Date().toISOString() }, { onConflict: 'date' });
 
-  if(error){ alert("Erreur lors de l'enregistrement de ce jour."); return; }
-  showToast("Modification enregistrée");
+  if(error){
+    if(button) button.disabled = false;
+    showToast("Erreur lors de l'enregistrement de ce jour", "danger");
+    return;
+  }
+  const dateLabel = new Date(dateISO + 'T12:00:00').toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  });
+  showToast(`Les horaires du ${dateLabel} ont bien été enregistrés`, "success");
   await loadSemaine();
 }
 
 async function resetJourSemaine(dateISO){
-  if(!confirm("Revenir à l'horaire habituel pour ce jour ?")) return;
-  const { error } = await supabaseClient.from('planning_overrides').delete().eq('date', dateISO);
-  if(error){ alert("Erreur lors de la suppression."); return; }
-  showToast("Horaire habituel rétabli");
-  await loadSemaine();}
+  showConfirmDialog("Revenir à l'horaire habituel pour ce jour ?", async ()=>{
+    const { error } = await supabaseClient.from('planning_overrides').delete().eq('date', dateISO);
+    if(error){ showToast("Erreur lors de la suppression", "danger"); return; }
+    showToast("Horaire habituel rétabli", "success");
+    await loadSemaine();
+  });
+}
 
 
 /* ============================================================
