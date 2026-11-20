@@ -412,19 +412,16 @@ async function calcDist(){
 }
 
 const JOURS_INDEX = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
-let PLANNING_CACHE = null;
 
 async function getPlanningConfig(){
-  if(PLANNING_CACHE) return PLANNING_CACHE;
   try{
     const { data, error } = await supabaseClient.from('planning_config').select('*').eq('id', 1).maybeSingle();
     if(error) throw error;
-    PLANNING_CACHE = data ? data.jours : {};
+    return data ? data.jours : {};
   }catch(e){
     console.warn('Planning : lecture des horaires récurrents impossible.', e);
-    PLANNING_CACHE = {};
+    return {};
   }
-  return PLANNING_CACHE;
 }
 
 async function getHorairesDuJour(dateISO){
@@ -547,6 +544,10 @@ async function refreshHeureAvailability(){
   });
 }
 document.getElementById('date_rdv').addEventListener('change', refreshHeureAvailability);
+window.addEventListener('focus', refreshHeureAvailability);
+document.addEventListener('visibilitychange', ()=>{
+  if(!document.hidden) refreshHeureAvailability();
+});
 
 function renderSummary(){
   const d = document.getElementById('date_rdv').value ? new Date(document.getElementById('date_rdv').value).toLocaleDateString('fr-FR') : '—';
