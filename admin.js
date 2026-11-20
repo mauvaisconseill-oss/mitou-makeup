@@ -47,6 +47,20 @@ function showToast(message, tone = 'info'){
   }, 2600);
 }
 
+function planningWriteError(error, action){
+  console.error(`Planning : ${action}`, error);
+  const code = String(error?.code || '').toUpperCase();
+  const message = String(error?.message || '').toLowerCase();
+
+  if(code === '42501' || message.includes('row-level security') || message.includes('permission denied')){
+    return "Modification refusée : autorisations d’écriture Supabase manquantes";
+  }
+  if(code === '401' || code === '403' || message.includes('jwt') || message.includes('session')){
+    return "Session expirée : reconnecte-toi, puis réessaie";
+  }
+  return "Erreur lors de l’enregistrement : " + (error?.message || "réessaie");
+}
+
 const HIDDEN_CARDS_KEY = 'mitou_hidden_cards_v1';
 function getHiddenCards(){
   try {
@@ -474,7 +488,7 @@ async function loadPlanning(){
 async function loadHoraires(){
   const { data, error } = await supabaseClient.from('planning_config').select('*').eq('id', 1).maybeSingle();
   if(error || !data){
-    showToast("Impossible de charger les horaires", "danger");
+    showToast(error ? planningWriteError(error, "chargement des horaires") : "Impossible de charger les horaires", "danger");
     return;
   }
   horairesActuels = data.jours || {};
@@ -516,6 +530,12 @@ function renderJoursList(){
 document.getElementById('save-horaires-btn').addEventListener('click', saveHoraires);
 
 async function saveHoraires(){
+  const { data: sessionData } = await supabaseClient.auth.getSession();
+  if(!sessionData.session){
+    showToast("Session expirée : reconnecte-toi", "danger");
+    return;
+  }
+
   const nouveauxJours = {};
   let validationInvalide = false;
   JOURS_SEMAINE.forEach(j => {
@@ -543,7 +563,7 @@ async function saveHoraires(){
     .update({ jours: nouveauxJours, updated_at: new Date().toISOString() })
     .eq('id', 1);
 
-  if(error){ showToast("Erreur lors de l'enregistrement des horaires", "danger"); return; }
+  if(error){ showToast(planningWriteError(error, "mise à jour des horaires récurrents"), "danger"); return; }
   horairesActuels = nouveauxJours;
   showToast("Horaires enregistrés", "success");
   await loadSemaine();
@@ -672,6 +692,12 @@ function onSemaineJourChange(dateISO){
 }
 
 async function sauvegarderOverride(dateISO, button){
+  const { data: sessionData } = await supabaseClient.auth.getSession();
+  if(!sessionData.session){
+    showToast("Session expirée : reconnecte-toi", "danger");
+    return;
+  }
+
   const check = document.querySelector(`[data-date="${dateISO}"] .sem-ouvert-check`);
   const ouvert = check.checked;
   const debut = ouvert ? (document.getElementById('sem-debut-'+dateISO).value || '10:00') : null;
@@ -688,7 +714,7 @@ async function sauvegarderOverride(dateISO, button){
 
   if(error){
     if(button) button.disabled = false;
-    showToast("Erreur lors de l'enregistrement de ce jour", "danger");
+    showToast(planningWriteError(error, "mise à jour d’une exception"), "danger");
     return;
   }
   const dateLabel = new Date(dateISO + 'T12:00:00').toLocaleDateString('fr-FR', {
@@ -702,8 +728,13 @@ async function sauvegarderOverride(dateISO, button){
 
 async function resetJourSemaine(dateISO){
   showConfirmDialog("Revenir à l'horaire habituel pour ce jour ?", async ()=>{
+    const { data: sessionData } = await supabaseClient.auth.getSession();
+    if(!sessionData.session){
+      showToast("Session expirée : reconnecte-toi", "danger");
+      return;
+    }
     const { error } = await supabaseClient.from('planning_overrides').delete().eq('date', dateISO);
-    if(error){ showToast("Erreur lors de la suppression", "danger"); return; }
+    if(error){ showToast(planningWriteError(error, "suppression d’une exception"), "danger"); return; }
     showToast("Horaire habituel rétabli", "success");
     await loadSemaine();
   });
